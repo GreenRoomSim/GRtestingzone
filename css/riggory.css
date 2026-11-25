@@ -33,11 +33,10 @@
    the selected glow takes its colour from the kind of pick:
    winner = WIN blue, saved from the bottom = LOW pink, stays = green. */
 .rig-grid {
-  --name-size: 0.68rem;
-  --name-size-long: 0.6rem;
-  --name-size-xlong: 0.52rem;
+  --name-size: 0.6rem;
+  --name-size-long: 0.54rem;
+  --name-size-xlong: 0.48rem;
   --rig-glow: var(--accent);
-  --rig-tick: var(--ink-deep);
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
@@ -45,31 +44,28 @@
   margin: 0 0 22px;
   padding: 8px 6px;             /* room so the glow isn't cut off */
 }
-.rig-grid[data-kind="win"] { --rig-glow: #4169e1; --rig-tick: #fff; }   /* same as the WIN tag */
+.rig-grid[data-kind="win"] { --rig-glow: #4169e1; }   /* same as the WIN tag */
 .rig-grid[data-kind="low"] { --rig-glow: #ea9999; }                     /* same as the LOW tag */
 
-.rig-grid .queen-card {
-  flex: 0 1 96px;               /* smaller on narrow screens, never wraps */
+.modal--rig .rig-grid .queen-card {
+  /* fixed small size, so nothing else can stretch it */
+  flex: none;
+  width: 70px !important;
+  height: 88px !important;
   min-width: 0;
   opacity: 0.72;
 }
+.modal--rig .rig-grid .queen-card::before { display: none; }   /* the 4:5 spacer isn't needed with a fixed size */
 .rig-grid .queen-card:hover,
 .rig-grid .queen-card:focus-visible { opacity: 1; }
-.rig-grid .queen-card .queen-name { padding: 20px 4px 5px; }
+.rig-grid .queen-card .queen-name { padding: 16px 3px 4px; }
 
 .rig-grid .queen-card.is-selected {
   opacity: 1;
   box-shadow: 0 0 0 3px var(--rig-glow), 0 0 20px 5px var(--rig-glow);
 }
-.rig-grid .queen-check {
-  width: 18px; height: 18px; top: 5px; right: 5px;
-  background: var(--rig-glow);
-  box-shadow: 0 0 0 2px #fff;
-}
-.rig-grid .queen-check::after {
-  left: 4px; top: 4px; width: 8px; height: 4px;
-  border-left-color: var(--rig-tick); border-bottom-color: var(--rig-tick);
-}
+/* The glow shows the pick, so no tick is needed */
+.rig-grid .queen-check { display: none !important; }
 
 .rig-actions {
   display: flex;
