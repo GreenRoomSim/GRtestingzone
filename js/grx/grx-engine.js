@@ -67,6 +67,7 @@ const GRX = (function () {
       runwayHistory: [],      // theme ids used so far
       songHistory: [],        // lip sync song ids used so far
       eliminated: [],
+      rigged: false,                        // true once the user has locked in an altered result (Riggory)
       episodes: [],
       finaleAt: finaleSizeFor(settings),    // queens left when the finale begins
       finale: null,                         // the finale log, once it has been run
@@ -300,6 +301,7 @@ const GRX = (function () {
     if (d.kind === 'premiere') return d.finish();
 
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    if (d.rigged) state.rigged = true;
     const events = d.events;
     const placement = {};
     d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
@@ -328,6 +330,60 @@ const GRX = (function () {
     state.episode++;
     if (activeQueens(state).length <= state.finaleAt) state.done = true;   // finale: see runFinale
     return log;
+  }
+
+  /* ---------- Riggory (user-altered results) ----------
+     rigOptions(draft) -> who the user may pick in each slot:
+       { win: [tops], low: [bottoms] (empty if no LOW this episode), out: [BTM2 queens] }
+     applyRig(draft, edits) -> a NEW draft with the edits applied (the original
+       is untouched, so Cancel = just keep using the original).
+       edits (all optional):
+         win: id of a top queen. She becomes WIN, the old winner drops to HIGH.
+         low: id of a bottom queen. She is the one saved (LOW); the old LOW
+              takes her place in the BTM2 (and her role in the lip sync).
+         out: id of a BTM2 queen. She goes home, the other one stays.
+     Rigged results ignore the hidden rules (BTM2 cap, repeat winners). Once
+     committed they count like any other result. Regular episodes only for now. */
+  function rigOptions(d) {
+    if (!d || d.kind !== 'regular') return null;
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2) };
+  }
+
+  function applyRig(d, edits) {
+    if (!d || d.kind !== 'regular') throw new Error('applyRig: only regular episodes can be rigged so far.');
+    edits = edits || {};
+    const r = Object.assign({}, d, { tops: d.tops.slice(), btm2: d.btm2.slice() });
+    const pick = function (list, id, slot) {
+      const q = list.find(function (x) { return x.id === id; });
+      if (!q) throw new Error('applyRig: "' + id + '" can\'t be chosen for ' + slot + ' here.');
+      return q;
+    };
+
+    if (edits.win) {
+      const q = pick(r.tops, edits.win, 'win');
+      const i = r.tops.indexOf(q), old = r.tops[0];
+      r.tops[0] = q; r.tops[i] = old;                       // old winner drops to HIGH
+    }
+    if (edits.low) {
+      if (!r.low) throw new Error('applyRig: this episode has no LOW to change.');
+      const q = pick(d.bottoms, edits.low, 'low'), old = r.low;
+      if (q !== old) {
+        r.btm2[r.btm2.indexOf(q)] = old;                    // old LOW joins the BTM2
+        if (r.out === q) r.out = old; else if (r.stay === q) r.stay = old;   // and takes her lip sync role
+        r.low = q;
+        r.forcedByCap = false;
+      }
+    }
+    if (edits.out) {
+      const q = pick(r.btm2, edits.out, 'out');
+      r.out = q;
+      r.stay = r.btm2.find(function (x) { return x !== q; });
+      r.forcedByCap = false;
+    }
+
+    r.rigged = !!d.rigged || r.tops[0] !== d.tops[0] || r.low !== d.low || r.out !== d.out;
+    return r;
   }
 
   function runEpisode(state) {
@@ -516,7 +572,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
+  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, applyRig: applyRig, rigOptions: rigOptions, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();
