@@ -1,48 +1,61 @@
 /* ==========================================================================
    GreenRoom Simulator - css/riggory.css
    The Choose Outcome button, its popup, and the track record note.
-   Reuses the existing .modal look (same as the "coming soon" popup).
-   Change the accent colour on the first line to match your theme.
+   Built on the existing look: .modal (setup.css), .btn (base.css) and the
+   queen cards (setup.css). Load after setup.css, episode.css, track-record.css.
    ========================================================================== */
 
-:root { --rig-accent: #4ade80; }
-
-.rig-btn { margin-right: 10px; }
-.rig-btn[hidden] { display: none; }
-
-.modal--rig { width: min(560px, 92vw); max-width: none; }
-
-.rig-grid {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 12px; margin: 18px 0;
+/* ---------- Choose Outcome button ---------- */
+/* Continue + Choose Outcome sit side by side */
+.episode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 20px;
 }
 
-.rig-pick {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  width: 108px; padding: 10px 8px;
-  background: transparent; color: inherit; font: inherit; cursor: pointer;
-  border: 2px solid color-mix(in srgb, currentColor 22%, transparent);
+/* Smaller and quieter than Continue (beats .episode-controls .btn) */
+.episode-controls .btn.rig-btn {
+  min-width: 0;
+  font-size: 1rem;
+  padding: 12px 24px;
   border-radius: 14px;
-  transition: border-color .15s, background-color .15s, transform .15s;
-}
-.rig-pick:hover { transform: translateY(-2px); }
-.rig-pick:focus-visible { outline: 3px solid var(--rig-accent); outline-offset: 2px; }
-.rig-pick[aria-pressed="true"] {
-  border-color: var(--rig-accent);
-  background: color-mix(in srgb, var(--rig-accent) 16%, transparent);
+  --lift: 5px;
 }
 
-.rig-face {
-  width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+/* ---------- The popup ---------- */
+.modal--rig { width: min(92vw, 560px); }
+
+/* Queens to pick from: reuses .queen-card, so the photo, name fade, green
+   ring and tick all match the cast screen. */
+.rig-grid {
+  --name-size: 0.85rem;
+  --name-size-long: 0.75rem;
+  --name-size-xlong: 0.66rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 140px));
+  justify-content: center;
+  gap: 12px;
+  margin: 0 0 26px;
+  padding: 6px;                 /* room so the selected ring isn't cut off */
 }
-.rig-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.rig-name { font-size: .85rem; font-weight: 700; text-align: center; line-height: 1.2; }
 
-.rig-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.rig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding-bottom: 6px;          /* room for the buttons' 3D underside */
+}
 
-/* Track record note (only shown when the user altered a result) */
+/* ---------- Track record note ---------- */
+.track-block { display: inline-block; max-width: 100%; }
+
 .track-note {
-  margin: 10px 4px 0; font-size: .8rem; font-style: italic;
-  color: #8a8f98; text-align: left;
+  margin: 8px 2px 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: left;
+  color: #8a8a8a;
 }

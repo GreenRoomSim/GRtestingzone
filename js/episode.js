@@ -532,17 +532,30 @@ const Episode = (function () {
              events: d.events.concat(GRX.resultEvents(d)) };
   }
 
-  function rigFace(id) {
+  // A pickable queen: same look as the cast cards (photo, name, green ring + tick)
+  function rigCard(id, selected) {
     const queen = queenData(id);
-    const face = make('span', 'rig-face');
+    const card = make('button', 'queen-card rig-pick' + (selected ? ' is-selected' : ''));
+    card.type = 'button';
+    card.setAttribute('aria-pressed', String(selected));
+    card.setAttribute('aria-label', queen.name);
+
+    const portrait = make('span', 'portrait');
     if (queen.image) {
       const img = document.createElement('img');
       img.src = queen.image;
       img.alt = '';
       img.addEventListener('error', function () { img.remove(); });
-      face.appendChild(img);
+      portrait.appendChild(img);
     }
-    return face;
+    const label = make('span', 'queen-name', queen.name);
+    if (queen.name.length >= 16) label.classList.add('is-xlong');
+    else if (queen.name.length >= 11) label.classList.add('is-long');
+
+    card.appendChild(portrait);
+    card.appendChild(label);
+    card.appendChild(make('span', 'queen-check'));
+    return card;
   }
 
   let rigDialog = null, rigTitle = null, rigText = null, rigGrid = null, rigActions = null;
@@ -611,14 +624,13 @@ const Episode = (function () {
 
       rigGrid.textContent = '';
       TEXT[kind][2].forEach(function (id) {
-        const b = make('button', 'rig-pick');
-        b.type = 'button';
-        b.setAttribute('aria-pressed', String(pick[kind] === id));
-        b.appendChild(rigFace(id));
-        b.appendChild(make('span', 'rig-name', name(id)));
+        const b = rigCard(id, pick[kind] === id);
         b.addEventListener('click', function () {
           pick[kind] = id;
-          Array.from(rigGrid.children).forEach(function (child) { child.setAttribute('aria-pressed', String(child === b)); });
+          Array.from(rigGrid.children).forEach(function (child) {
+            child.classList.toggle('is-selected', child === b);
+            child.setAttribute('aria-pressed', String(child === b));
+          });
         });
         rigGrid.appendChild(b);
       });
