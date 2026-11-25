@@ -623,6 +623,7 @@ const Episode = (function () {
       rigText.textContent = TEXT[kind][1];
 
       rigGrid.textContent = '';
+      rigGrid.dataset.kind = kind;                 // colours the glow (win / low / stay)
       TEXT[kind][2].forEach(function (id) {
         const b = rigCard(id, pick[kind] === id);
         b.addEventListener('click', function () {
