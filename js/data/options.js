@@ -76,6 +76,17 @@ const SETUP_OPTIONS = [
       { id: 'top4',             label: 'Top 4 Finale' },
       { id: 'crown',            label: 'Lip Sync For The Crown' }
     ]
+  },
+
+  {
+    id: 'extras',
+    label: 'Extras',
+    type: 'multi',
+    help: 'Optional extras. Everything here is off by default.',
+    defaults: [],
+    choices: [
+      { id: 'riggory', label: 'User Riggory', note: 'Choose the outcome of each episode if you want to' }
+    ]
   }
 
 ];

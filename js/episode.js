@@ -47,6 +47,12 @@ const Episode = (function () {
   let currentLog = null;    // the episode log being played (for the dev panel)
   let devPanel = null;
 
+  // Riggory (only when the "User Riggory" extra is switched on in Setup)
+  let rigOn = false;        // is riggory on for this season?
+  let draft = null;         // the episode being shown, simulated but NOT recorded yet
+  let shownId = null;       // id of the scene on screen
+  let rigBtn = null;        // the small "Choose Outcome" button
+
   function queenData(id) { return QUEENS.find(function (q) { return q.id === id; }); }
   function name(id) { return queenData(id).name; }
   function names(ids) { return ids.map(name).join(', '); }
@@ -511,15 +517,138 @@ const Episode = (function () {
   }
 
 
+  /* ---------- Riggory: Choose Outcome ----------
+     With the "User Riggory" extra on, a regular episode is simulated into a
+     DRAFT (GRX.prepareEpisode) and shown as a preview. The Choose Outcome
+     button appears on two scenes:
+       'critiques'  before the results: pick the winner, then who is LOW
+       'lipsync'    before the lip sync result: pick who stays
+     Nothing changes until Lock In. After Lock In the remaining scenes are
+     rebuilt from the edited draft. The draft is recorded for real (placements,
+     wins, elimination) just before the 'shantay' scene. */
+  function previewLog(d) {
+    return { episode: season.episode, queensLeft: d.n,
+             appearing: d.active.map(function (q) { return q.id; }),
+             events: d.events.concat(GRX.resultEvents(d)) };
+  }
+
+  function rigFace(id) {
+    const queen = queenData(id);
+    const face = make('span', 'rig-face');
+    if (queen.image) {
+      const img = document.createElement('img');
+      img.src = queen.image;
+      img.alt = '';
+      img.addEventListener('error', function () { img.remove(); });
+      face.appendChild(img);
+    }
+    return face;
+  }
+
+  let rigDialog = null, rigTitle = null, rigText = null, rigGrid = null, rigActions = null;
+
+  function ensureRigDialog() {
+    if (rigDialog) return;
+    rigDialog = make('dialog', 'modal modal--rig');
+    rigDialog.setAttribute('aria-labelledby', 'rig-title');
+    rigTitle = make('h3', 'modal-title');
+    rigTitle.id = 'rig-title';
+    rigText = make('p', 'modal-text');
+    rigGrid = make('div', 'rig-grid');
+    rigActions = make('div', 'rig-actions');
+    // Escape closes the popup only (it must not also send you back to Home)
+    rigDialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
+    rigDialog.addEventListener('click', function (event) { if (event.target === rigDialog) rigDialog.close(); });
+    [rigTitle, rigText, rigGrid, rigActions].forEach(function (n) { rigDialog.appendChild(n); });
+    document.body.appendChild(rigDialog);
+  }
+
+  function openRig(mode) {
+    if (!draft) return;
+    const opts = GRX.rigOptions(draft);
+    if (!opts) return;
+    ensureRigDialog();
+
+    const pick = { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id };
+    const steps = [];
+    if (mode === 'lipsync') steps.push('stay');
+    else {
+      if (opts.win.length > 1) steps.push('win');
+      if (opts.low.length > 1) steps.push('low');
+    }
+    if (!steps.length) return;
+    let step = 0;
+
+    const TEXT = {
+      win:  ['Choose the winner', 'Pick who wins this week\u2019s challenge. The other top queens will be HIGH.', opts.win],
+      low:  ['Choose who is safe', 'Pick the queen who is safe from the bottom (LOW). The other two are up for elimination.', opts.low],
+      stay: ['Choose who stays', 'Pick the queen who stays. The other queen sashays away.', opts.out]
+    };
+
+    function button(label, className, onClick) {
+      const b = make('button', 'btn small ' + className, label);
+      b.type = 'button';
+      b.addEventListener('click', onClick);
+      return b;
+    }
+
+    function lockIn() {
+      const edits = {};
+      if (steps.indexOf('win') !== -1) edits.win = pick.win;
+      if (steps.indexOf('low') !== -1) edits.low = pick.low;
+      if (steps.indexOf('stay') !== -1) edits.out = opts.out.find(function (id) { return id !== pick.stay; });
+      draft = GRX.applyRig(draft, edits);
+      currentLog = previewLog(draft);
+      scenes = buildScenes(currentLog);              // same scenes, new results
+      updateDev(scenes[sceneIndex - 1]);
+      rigDialog.close();
+    }
+
+    function render() {
+      const kind = steps[step];
+      rigTitle.textContent = TEXT[kind][0];
+      rigText.textContent = TEXT[kind][1];
+
+      rigGrid.textContent = '';
+      TEXT[kind][2].forEach(function (id) {
+        const b = make('button', 'rig-pick');
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(pick[kind] === id));
+        b.appendChild(rigFace(id));
+        b.appendChild(make('span', 'rig-name', name(id)));
+        b.addEventListener('click', function () {
+          pick[kind] = id;
+          Array.from(rigGrid.children).forEach(function (child) { child.setAttribute('aria-pressed', String(child === b)); });
+        });
+        rigGrid.appendChild(b);
+      });
+
+      rigActions.textContent = '';
+      rigActions.appendChild(button('Cancel', 'rig-cancel', function () { rigDialog.close(); }));
+      if (step > 0) rigActions.appendChild(button('Back', 'rig-back', function () { step--; render(); }));
+      if (step < steps.length - 1) rigActions.appendChild(button('Next', 'rig-next', function () { step++; render(); }));
+      else rigActions.appendChild(button('Lock In', 'rig-lock', lockIn));
+    }
+
+    render();
+    rigDialog.showModal();
+  }
+
+
   /* ---------- 5. Buttons and start-up ---------- */
   function updateButton() {
     const allShown = sceneIndex >= scenes.length;
     if (season.finale && allShown) nextBtn.textContent = 'New season';
     else nextBtn.textContent = (allShown && season.done) ? 'To the finale' : 'Continue';
+    // Choose Outcome: only with riggory on, on the scenes just before a result
+    if (rigBtn) rigBtn.hidden = !(draft && (shownId === 'critiques' || shownId === 'lipsync'));
   }
 
   function start() {
     season = GRX.newSeason(Cast.getQueens(), Setup.get());
+    rigOn = (season.settings.extras || []).indexOf('riggory') !== -1;
+    draft = null;
+    shownId = 'start';
     scenes = [];
     sceneIndex = 0;
     currentLog = null;
@@ -539,13 +668,25 @@ const Episode = (function () {
         sceneIndex = 0;
         episodeTag.textContent = 'The finale';
       } else {
-        currentLog = GRX.runEpisode(season);
+        if (rigOn) {
+          const d = GRX.prepareEpisode(season);
+          if (d && d.kind === 'regular') { draft = d; currentLog = previewLog(d); }   // recorded later
+          else currentLog = d ? GRX.commitEpisode(season, d) : null;                  // premieres: no riggory yet
+        } else {
+          currentLog = GRX.runEpisode(season);
+        }
         scenes = buildScenes(currentLog);
         sceneIndex = 0;
         episodeTag.textContent = 'Episode ' + currentLog.episode;   // stays put, never fades
       }
     }
-    drawScene(scenes[sceneIndex++]);
+    const scene = scenes[sceneIndex++];
+    if (draft && scene.id === 'shantay') {            // the result is final now: record it
+      currentLog = GRX.commitEpisode(season, draft);
+      draft = null;
+    }
+    shownId = scene.id;
+    drawScene(scene);
     updateButton();
   }
 
@@ -585,6 +726,15 @@ const Episode = (function () {
       Nav.go('episode');
     });
     nextBtn.addEventListener('click', next);
+
+    // Choose Outcome button (made here so index.html needn't change)
+    rigBtn = document.createElement('button');
+    rigBtn.className = 'btn small rig-btn';
+    rigBtn.type = 'button';
+    rigBtn.textContent = 'Choose Outcome';
+    rigBtn.hidden = true;
+    rigBtn.addEventListener('click', function () { openRig(shownId === 'lipsync' ? 'lipsync' : 'results'); });
+    nextBtn.before(rigBtn);
   }
 
   return { init: init, get: function () { return season; } };

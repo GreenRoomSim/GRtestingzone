@@ -297,24 +297,32 @@ const GRX = (function () {
              stay: stay, out: out, forcedByCap: forcedByCap, song: song };
   }
 
+  // The events that come after the runway (safe, critiques, results, lip sync,
+  // elimination), built from a draft. Pure: records nothing. The episode screen
+  // uses it to show a PREVIEW before the draft is committed (Riggory).
+  function resultEvents(d) {
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    return [
+      { type: 'safe', queens: ids(d.safe) },
+      { type: 'critiques', tops: ids(d.tops), bottoms: ids(d.bottoms) },
+      { type: 'results', win: d.tops[0].id, high: ids(d.tops.slice(1)),
+        low: d.low ? d.low.id : null, btm2: ids(d.btm2) },
+      { type: 'lipsync', queens: ids(d.btm2), stay: d.stay.id, forcedByCap: d.forcedByCap,
+        song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null },
+      { type: 'elimination', queen: d.out.id }
+    ];
+  }
+
   function commitEpisode(state, d) {
     if (d.kind === 'premiere') return d.finish();
 
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     if (d.rigged) state.rigged = true;
-    const events = d.events;
     const placement = {};
     d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
     d.tops.forEach(function (q, i) { placement[q.id] = i === 0 ? 'WIN' : 'HIGH'; });
     d.bottoms.forEach(function (q) { placement[q.id] = q === d.low ? 'LOW' : 'BTM2'; });
-
-    events.push({ type: 'safe', queens: ids(d.safe) });
-    events.push({ type: 'critiques', tops: ids(d.tops), bottoms: ids(d.bottoms) });
-    events.push({ type: 'results', win: d.tops[0].id, high: ids(d.tops.slice(1)),
-                  low: d.low ? d.low.id : null, btm2: ids(d.btm2) });
-    events.push({ type: 'lipsync', queens: ids(d.btm2), stay: d.stay.id, forcedByCap: d.forcedByCap,
-                  song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null });
-    events.push({ type: 'elimination', queen: d.out.id });
+    const events = d.events.concat(resultEvents(d));
 
     // Update records
     d.active.forEach(function (q) { q.placements.push(placement[q.id]); });
@@ -572,7 +580,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, applyRig: applyRig, rigOptions: rigOptions, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
+  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, applyRig: applyRig, resultEvents: resultEvents, rigOptions: rigOptions, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();

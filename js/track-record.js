@@ -202,6 +202,14 @@ const TrackRecord = (function () {
 
     const wrap = make('div', 'track-wrap');
     wrap.appendChild(table);
+
+    // Riggory: a small note underneath if the user altered any result
+    if (season.rigged) {
+      const block = make('div', 'track-block');
+      block.appendChild(wrap);
+      block.appendChild(make('p', 'track-note', '* Some placements this season were altered by the user.'));
+      return block;
+    }
     return wrap;
   }
 
