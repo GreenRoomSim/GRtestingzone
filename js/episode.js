@@ -572,6 +572,8 @@ const Episode = (function () {
     // Escape closes the popup only (it must not also send you back to Home)
     rigDialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
     rigDialog.addEventListener('click', function (event) { if (event.target === rigDialog) rigDialog.close(); });
+    // While the popup is open, the animations behind it are paused (keeps it smooth)
+    rigDialog.addEventListener('close', function () { document.body.classList.remove('rig-open'); });
     [rigTitle, rigText, rigGrid, rigActions].forEach(function (n) { rigDialog.appendChild(n); });
     document.body.appendChild(rigDialog);
   }
@@ -644,6 +646,7 @@ const Episode = (function () {
     }
 
     render();
+    document.body.classList.add('rig-open');
     rigDialog.showModal();
   }
 

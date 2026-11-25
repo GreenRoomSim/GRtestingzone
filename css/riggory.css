@@ -15,15 +15,6 @@
   gap: 16px 20px;
 }
 
-/* Smaller and quieter than Continue (beats .episode-controls .btn) */
-.episode-controls .btn.rig-btn {
-  min-width: 0;
-  font-size: 1rem;
-  padding: 12px 24px;
-  border-radius: 14px;
-  --lift: 5px;
-}
-
 /* ---------- The popup ---------- */
 .modal--rig { width: min(92vw, 400px); padding: 26px 22px 24px; }
 .modal--rig .modal-title { font-size: 1.6rem; margin-bottom: 8px; }
@@ -33,9 +24,9 @@
    the selected glow takes its colour from the kind of pick:
    winner = WIN blue, saved from the bottom = LOW pink, stays = green. */
 .rig-grid {
-  --name-size: 0.6rem;
-  --name-size-long: 0.54rem;
-  --name-size-xlong: 0.48rem;
+  --name-size: 0.72rem;
+  --name-size-long: 0.64rem;
+  --name-size-xlong: 0.56rem;
   --rig-glow: var(--accent);
   display: flex;
   flex-wrap: nowrap;
@@ -50,15 +41,15 @@
 .modal--rig .rig-grid .queen-card {
   /* fixed small size, so nothing else can stretch it */
   flex: none;
-  width: 70px !important;
-  height: 88px !important;
+  width: 92px !important;
+  height: 115px !important;
   min-width: 0;
   opacity: 0.72;
 }
 .modal--rig .rig-grid .queen-card::before { display: none; }   /* the 4:5 spacer isn't needed with a fixed size */
 .rig-grid .queen-card:hover,
 .rig-grid .queen-card:focus-visible { opacity: 1; }
-.rig-grid .queen-card .queen-name { padding: 16px 3px 4px; }
+.rig-grid .queen-card .queen-name { padding: 20px 4px 5px; }
 
 .rig-grid .queen-card.is-selected {
   opacity: 1;
@@ -74,6 +65,22 @@
   gap: 12px;
   padding-bottom: 6px;          /* room for the buttons' 3D underside */
 }
+
+/* ---------- Keeping the popup smooth ----------
+   The episode scene behind it has looping animations (glows, confetti) and
+   the popup blurs whatever is behind it, which is expensive. So while it is
+   open the animations behind it are paused. If it is still slow on an old
+   device, delete the backdrop-filter lines below to drop the blur. */
+body.rig-open .episode-stage,
+body.rig-open .episode-stage *,
+body.rig-open .confetti,
+body.rig-open .confetti * { animation-play-state: paused !important; }
+
+.modal--rig::backdrop {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.modal--rig .rig-grid .queen-card { transition: opacity 0.12s ease, box-shadow 0.12s ease; }
 
 /* ---------- Track record note ---------- */
 .track-block { display: inline-block; max-width: 100%; }
