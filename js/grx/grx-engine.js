@@ -193,8 +193,14 @@ const GRX = (function () {
   }
 
 
-  /* ---------- One episode ---------- */
-  function runEpisode(state) {
+  /* ---------- One episode ----------
+     Two stages, so the Riggory update can step in between them:
+       prepareEpisode(state)        simulates the episode and returns a DRAFT
+                                    (nothing is recorded yet, except the
+                                    challenge/runway/song histories)
+       commitEpisode(state, draft)  records the draft as the real result
+     runEpisode() does both in one go, exactly as before. */
+  function prepareEpisode(state) {
     const everyone = activeQueens(state);
     const isPremiere = state.episode <= state.premiere.episodes;
 
@@ -239,10 +245,16 @@ const GRX = (function () {
     const theme = pickFresh(state, typeof RUNWAY_THEMES !== 'undefined' ? RUNWAY_THEMES : [], state.runwayHistory);
     events.push({ type: 'runway', theme: theme ? { id: theme.id, name: theme.name } : null, scores: scoreMap(runway) });
 
-    // Rank best to worst, then hand out placements
+    // Rank best to worst
     const ranked = active.slice().sort(function (a, b) { return total[b.id] - total[a.id]; });
-    if (isPremiere) return finishPremiere(state, everyone, active, ranked, events);
-    const placement = {};
+
+    // Premieres: finished as before (Riggory for premieres comes in a later phase)
+    if (isPremiere) {
+      return { kind: 'premiere', events: events,
+               finish: function () { return finishPremiere(state, everyone, active, ranked, events); } };
+    }
+
+    // Regular episode: decide the placements
     const tops = ranked.slice(0, shape.top);
     // Repeat winners: last week's winner is less likely to win again. She is
     // still in the tops, the win just goes to the next best top queen.
@@ -252,17 +264,8 @@ const GRX = (function () {
     }
     const bottoms = ranked.slice(n - shape.bottom);
     const safe = ranked.slice(shape.top, n - shape.bottom);
-
-    safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
-    tops.forEach(function (q, i) { placement[q.id] = i === 0 ? 'WIN' : 'HIGH'; });
     const low = shape.bottom === 3 ? bottoms[0] : null;      // best of the bottom is called safe
-    bottoms.forEach(function (q) { placement[q.id] = q === low ? 'LOW' : 'BTM2'; });
     const btm2 = bottoms.filter(function (q) { return q !== low; });
-
-    events.push({ type: 'safe', queens: ids(safe) });
-    events.push({ type: 'critiques', tops: ids(tops), bottoms: ids(bottoms) });
-    events.push({ type: 'results', win: tops[0].id, high: ids(tops.slice(1)),
-                  low: low ? low.id : null, btm2: ids(btm2) });
 
     // Lip sync for your life
     const ls = btm2.map(function (q) {
@@ -286,24 +289,50 @@ const GRX = (function () {
       forcedByCap = true;
     }
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
-    events.push({ type: 'lipsync', queens: ids(btm2), stay: stay.id, forcedByCap: forcedByCap,
-                  song: song ? { id: song.id, title: song.title, artist: song.artist } : null });
-    events.push({ type: 'elimination', queen: out.id });
+
+    return { kind: 'regular', events: events, active: active, n: n,
+             tops: tops,           // [0] = winner, the rest HIGH
+             safe: safe, low: low, btm2: btm2, bottoms: bottoms,
+             stay: stay, out: out, forcedByCap: forcedByCap, song: song };
+  }
+
+  function commitEpisode(state, d) {
+    if (d.kind === 'premiere') return d.finish();
+
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const events = d.events;
+    const placement = {};
+    d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
+    d.tops.forEach(function (q, i) { placement[q.id] = i === 0 ? 'WIN' : 'HIGH'; });
+    d.bottoms.forEach(function (q) { placement[q.id] = q === d.low ? 'LOW' : 'BTM2'; });
+
+    events.push({ type: 'safe', queens: ids(d.safe) });
+    events.push({ type: 'critiques', tops: ids(d.tops), bottoms: ids(d.bottoms) });
+    events.push({ type: 'results', win: d.tops[0].id, high: ids(d.tops.slice(1)),
+                  low: d.low ? d.low.id : null, btm2: ids(d.btm2) });
+    events.push({ type: 'lipsync', queens: ids(d.btm2), stay: d.stay.id, forcedByCap: d.forcedByCap,
+                  song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null });
+    events.push({ type: 'elimination', queen: d.out.id });
 
     // Update records
-    active.forEach(function (q) { q.placements.push(placement[q.id]); });
-    tops[0].wins++;
-    state.lastWinner = tops[0].id;
-    btm2.forEach(function (q) { q.lipSyncs++; });
-    out.status = 'eliminated';
-    out.eliminatedEp = state.episode;
-    state.eliminated.push({ id: out.id, episode: state.episode });
+    d.active.forEach(function (q) { q.placements.push(placement[q.id]); });
+    d.tops[0].wins++;
+    state.lastWinner = d.tops[0].id;
+    d.btm2.forEach(function (q) { q.lipSyncs++; });
+    d.out.status = 'eliminated';
+    d.out.eliminatedEp = state.episode;
+    state.eliminated.push({ id: d.out.id, episode: state.episode });
 
-    const log = { episode: state.episode, queensLeft: n, appearing: ids(active), events: events };
+    const log = { episode: state.episode, queensLeft: d.n, appearing: ids(d.active), events: events };
     state.episodes.push(log);
     state.episode++;
     if (activeQueens(state).length <= state.finaleAt) state.done = true;   // finale: see runFinale
     return log;
+  }
+
+  function runEpisode(state) {
+    const draft = prepareEpisode(state);
+    return draft ? commitEpisode(state, draft) : null;
   }
 
   function scoreMap(obj) {
@@ -487,7 +516,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
+  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();
