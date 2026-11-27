@@ -105,4 +105,36 @@ body.rig-open .confetti * { animation-play-state: paused !important; }
 .rig-double { display: flex; justify-content: center; gap: 12px; margin: 0 0 20px; }
 .rig-double:empty { display: none; }
 .rig-double-btn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--accent), 0 0 18px 4px var(--accent); }
+
+/* ---------- Bigger queen cards + roomier popup ---------- */
+.modal--rig { width: min(94vw, 520px); }
+.modal--rig.modal--wide { width: min(94vw, 600px); }
+
+.rig-grid {
+  --name-size: 0.8rem;
+  --name-size-long: 0.7rem;
+  --name-size-xlong: 0.62rem;
+  gap: 12px;
+}
+.modal--rig .rig-grid .queen-card { width: 112px !important; height: 140px !important; }
+.modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 86px !important; height: 108px !important; }
+.modal--rig .rig-grid[data-kind="top2"] { gap: 10px; }
+
+/* Phones: back to a size that fits */
+@media (max-width: 520px) {
+  .modal--rig .rig-grid .queen-card { width: 88px !important; height: 110px !important; }
+  .modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 62px !important; height: 78px !important; }
+}
+
+/* Cancel / Lock In: main buttons, with space around them */
+.rig-actions { gap: 14px 18px; padding-bottom: 12px; }
+
+/* Save both / Eliminate both: small, underneath */
+.rig-double { display: flex; justify-content: center; gap: 12px; margin: 14px 0 0; padding-bottom: 6px; }
+.rig-double-btn {
+  --lift: 3px;
+  font-size: 0.78rem;
+  padding: 7px 14px;
+  border-radius: 10px;
+}
 }
