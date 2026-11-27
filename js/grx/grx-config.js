@@ -77,11 +77,12 @@ const GRX_CONFIG = {
                      very unlikely twice in a row (see categoryRepeatWeight).
        stages:       when in the season it can appear, from the `stages` list
                      below, e.g. ['start', 'middle']. Leave out = anywhere.
+       once:         true = can only appear once per season (the staples)
        firstEpisode: 'only'  = episode 1 only (and it is picked there)
                      'never' = anywhere except episode 1
                      leave out = no rule */
   challenges: [
-    { id: 'talent-show', name: 'Talent Show', category: 'performance', firstEpisode: 'only',
+    { id: 'talent-show', once: true, name: 'Talent Show', category: 'performance', firstEpisode: 'only',
       weights: { performance: 0.7, lipSync: 0.3 } },
     { id: 'design',      name: 'Design',      category: 'design',
       weights: { design: 1 } },
@@ -89,17 +90,17 @@ const GRX_CONFIG = {
       weights: { acting: 0.6, comedy: 0.4 } },
     { id: 'improv',      name: 'Improv',      category: 'acting', firstEpisode: 'never',
       weights: { comedy: 0.6, acting: 0.4 } },
-    { id: 'rusical',     name: 'Rusical',     category: 'performance', stages: ['middle'],
+    { id: 'rusical', once: true,     name: 'Rusical',     category: 'performance', stages: ['middle'],
       weights: { performance: 0.7, acting: 0.3 } },
-    { id: 'snatch-game', name: 'Snatch Game', category: 'acting', stages: ['middle'],
+    { id: 'snatch-game', once: true, name: 'Snatch Game', category: 'acting', stages: ['middle'],
       weights: { comedy: 1 } },
-    { id: 'girl-groups', name: 'Girl Groups', category: 'performance', stages: ['start', 'middle'],
+    { id: 'girl-groups', once: true, name: 'Girl Groups', category: 'performance', stages: ['start', 'middle'],
       weights: { performance: 0.5, lipSync: 0.5 } },
     { id: 'advert',      name: 'Advert',      category: 'acting', firstEpisode: 'never',
       weights: { acting: 0.5, comedy: 0.5 } },
-    { id: 'ball',        name: 'Ball',        category: 'design', firstEpisode: 'never',
+    { id: 'ball', once: true,        name: 'Ball',        category: 'design', firstEpisode: 'never',
       weights: { design: 1 } },
-    { id: 'makeover',    name: 'Makeover',    category: 'design', stages: ['end'],
+    { id: 'makeover', once: true,    name: 'Makeover',    category: 'design', stages: ['end'],
       weights: { design: 0.7, performance: 0.3 } }
   ],
 

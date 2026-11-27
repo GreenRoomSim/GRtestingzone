@@ -124,11 +124,13 @@ const GRX = (function () {
     const hist = state.challengeHistory;
     const first = state.episode === 1;
     const p = seasonProgress(state);
+    // 'once' challenges (staples) that have already happened are out for good
+    const available = C.challenges.filter(function (c) { return !(c.once && hist.indexOf(c.id) !== -1); });
     const byId = function (id) { return C.challenges.find(function (c) { return c.id === id; }); };
 
     // Episode 1: a 'first episode only' challenge (Talent Show) is picked
     if (first) {
-      const openers = C.challenges.filter(function (c) { return c.firstEpisode === 'only'; });
+      const openers = available.filter(function (c) { return c.firstEpisode === 'only'; });
       if (openers.length) return openers[Math.floor(state.rng() * openers.length)];
     }
 
@@ -141,10 +143,10 @@ const GRX = (function () {
     const coolOk  = function (c) { return hist.slice(-C.challengeCooldown).indexOf(c.id) === -1; };
 
     // Strictest first; relax the stage window, then the cooldown, if nothing is left
-    let pool = C.challenges.filter(function (c) { return firstOk(c) && stageOk(c) && coolOk(c); });
-    if (!pool.length) pool = C.challenges.filter(function (c) { return firstOk(c) && coolOk(c); });
-    if (!pool.length) pool = C.challenges.filter(firstOk);
-    if (!pool.length) pool = C.challenges.slice();
+    let pool = available.filter(function (c) { return firstOk(c) && stageOk(c) && coolOk(c); });
+    if (!pool.length) pool = available.filter(function (c) { return firstOk(c) && coolOk(c); });
+    if (!pool.length) pool = available.filter(firstOk);
+    if (!pool.length) pool = available.length ? available.slice() : C.challenges.slice();
 
     // Variety: same category as last episode (or the one before) is much less likely
     const lastCat = hist.length > 0 && byId(hist[hist.length - 1]) ? byId(hist[hist.length - 1]).category : null;
