@@ -39,6 +39,11 @@
 .rig-grid[data-kind="win"] { --rig-glow: #4169e1; }   /* same as the WIN tag */
 .rig-grid[data-kind="low"] { --rig-glow: #ea9999; }                     /* same as the LOW tag */
 .rig-grid[data-kind="top2"] { --rig-glow: #00bfff; }                    /* same as the TOP 2 tag */
+/* Finale picks: glow = the placement she gets. Set the real colours on :root
+   as --rig-gold / --rig-elim (or edit the fallbacks here). Lip Sync For The
+   Crown lip syncs ("crown-ls") use the normal green. */
+.rig-grid[data-kind="finale-win"] { --rig-glow: var(--rig-gold, #ffd100); }   /* WINNER gold */
+.rig-grid[data-kind="finale-cut"] { --rig-glow: var(--rig-elim, #9e512c); }   /* finale ELIM brown */
 
 .modal--rig .rig-grid .queen-card {
   /* fixed small size, so nothing else can stretch it */

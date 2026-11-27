@@ -585,7 +585,7 @@ const GRX = (function () {
 
 
 
-  /* ---------- Riggory for finales (Top 3 / Top 4; not Lip Sync For The Crown yet) ----------
+  /* ---------- Riggory for finales (Top 3, Top 4 and Lip Sync For The Crown) ----------
      finaleRigOptions(state) -> { cut: [ids] (empty if no cut), win: [ids] } or null
      applyFinaleRig(state, { cut: id, win: id })
        cut: (Top 4 only) the queen sent home before the final lip sync. The old
@@ -595,13 +595,77 @@ const GRX = (function () {
      result and records the new one. */
   function finaleRigOptions(state) {
     const f = state.finale;
-    if (!f || f.format === 'crown') return null;
+    if (!f) return null;
+    if (f.format === 'crown') {
+      return { cut: [], ls1: f.matches[0].queens.slice(), ls2: f.matches[1].queens.slice(),
+               win: f.matches[2].queens.slice() };
+    }
     return { cut: f.cut ? f.entrants.slice() : [], win: f.finalists.slice() };
+  }
+
+  // Lip Sync For The Crown: edits = { ls1: id, ls2: id, win: id }
+  //   ls1 / ls2: who wins the first / second lip sync (goes through)
+  //   win: who wins the final lip sync (one of the two who went through)
+  function applyCrownRig(state, edits) {
+    const f = state.finale;
+    const K = C.crownFinale;
+    const byId = function (id) { return state.queens.find(function (q) { return q.id === id; }); };
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const record = function (q) {
+      const keys = Object.keys(q.stats);
+      const avg = keys.reduce(function (s, k) { return s + q.stats[k]; }, 0) / keys.length;
+      return avg + q.wins * K.winBonus - q.lipSyncs * K.btm2Penalty;
+    };
+    const m1 = f.matches[0], m2 = f.matches[1], fin = f.matches[2];
+    const before = [m1.winner, m2.winner, fin.winner].join();
+    const finalWonFrom = fin.winner === m1.winner ? m1 : m2;     // the match the old champion came through
+
+    function setWinner(m, id, slot) {
+      if (m.queens.indexOf(id) === -1) throw new Error('applyFinaleRig: "' + id + '" isn\'t in ' + slot + '.');
+      m.winner = id;
+      m.loser = m.queens.find(function (x) { return x !== id; });
+    }
+    if (edits.ls1) setWinner(m1, edits.ls1, 'lip sync one');
+    if (edits.ls2) setWinner(m2, edits.ls2, 'lip sync two');
+
+    // The final is between the two who went through. Keep the old champion if
+    // she is still in it, otherwise whoever replaced her.
+    const oldChamp = fin.winner;
+    fin.queens = [m1.winner, m2.winner];
+    fin.winner = fin.queens.indexOf(oldChamp) !== -1 ? oldChamp : finalWonFrom.winner;
+    if (edits.win) {
+      if (fin.queens.indexOf(edits.win) === -1) throw new Error('applyFinaleRig: "' + edits.win + '" isn\'t in the final.');
+      fin.winner = edits.win;
+    }
+    fin.loser = fin.queens.find(function (x) { return x !== fin.winner; });
+
+    // Undo the old result, record the new one
+    f.entrants.forEach(function (id) {
+      const q = byId(id);
+      q.placements.pop();
+      q.finalRank = null;
+      q.lostRound1 = false;
+    });
+    const semiLosers = [byId(m1.loser), byId(m2.loser)].sort(function (a, b) { return record(b) - record(a); });
+    byId(fin.winner).finalRank = 1;
+    byId(fin.loser).finalRank = 2;
+    semiLosers.forEach(function (q) { q.finalRank = 3; q.lostRound1 = true; });
+    f.entrants.forEach(function (id) {
+      const q = byId(id);
+      q.placements.push(q.finalRank === 1 ? 'WINNER' : 'RUNNER UP');
+    });
+
+    f.winner = fin.winner;
+    f.runnersUp = [fin.loser].concat(ids(semiLosers));
+    state.winner = fin.winner;
+    if ([m1.winner, m2.winner, fin.winner].join() !== before) { state.rigged = true; f.rigged = true; }
+    return f;
   }
 
   function applyFinaleRig(state, edits) {
     const f = state.finale;
-    if (!f || f.format === 'crown') throw new Error('applyFinaleRig: nothing to rig here.');
+    if (!f) throw new Error('applyFinaleRig: nothing to rig here.');
+    if (f.format === 'crown') return applyCrownRig(state, edits || {});
     edits = edits || {};
     const byId = function (id) { return state.queens.find(function (q) { return q.id === id; }); };
     const oldCut = f.cut, oldWinner = f.winner;

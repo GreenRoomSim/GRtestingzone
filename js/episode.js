@@ -694,13 +694,16 @@ const Episode = (function () {
 
   /* ---------- Riggory: finale (Top 3 / Top 4) ----------
      'finale-cut-announce' (Top 4): choose who is cut.
+     'crown-ls-1' / 'crown-ls-2' (Lip Sync For The Crown): who wins each lip sync.
      'finale-decision': choose the winner.
      The finale is already recorded, so Lock In patches it (GRX.applyFinaleRig)
      and rebuilds the finale scenes, keeping the current position. */
   function finaleRigKind() {
     if (!rigOn || !season || !season.finale || !currentLog || !currentLog.finale) return null;
     const opts = GRX.finaleRigOptions(season);
-    if (!opts) return null;                                   // Lip Sync For The Crown: later
+    if (!opts) return null;
+    if (shownId === 'crown-ls-1') return 'ls1';
+    if (shownId === 'crown-ls-2') return 'ls2';
     if (shownId === 'finale-cut-announce' && opts.cut.length) return 'cut';
     if (shownId === 'finale-decision' && opts.win.length > 1) return 'win';
     return null;
@@ -711,15 +714,23 @@ const Episode = (function () {
     if (!opts) return;
     ensureRigDialog();
     const ids = opts[kind];
-    let picked = kind === 'cut' ? currentLog.cut : currentLog.winner;
+    const TEXT = {
+      cut: ['Choose who is cut', 'Pick the queen who does not make it to the final lip sync.'],
+      win: ['Choose the winner', 'Pick the queen who wins the season. The others are runners-up.'],
+      ls1: ['Lip sync one', 'Pick who wins the first lip sync and goes through to the final.'],
+      ls2: ['Lip sync two', 'Pick who wins the second lip sync and goes through to the final.']
+    };
+    let picked = kind === 'cut' ? currentLog.cut
+               : kind === 'ls1' ? currentLog.matches[0].winner
+               : kind === 'ls2' ? currentLog.matches[1].winner
+               : currentLog.winner;
 
-    rigTitle.textContent = kind === 'cut' ? 'Choose who is cut' : 'Choose the winner';
-    rigText.textContent = kind === 'cut'
-      ? 'Pick the queen who does not make it to the final lip sync.'
-      : 'Pick the queen who wins the season. The others are runners-up.';
+    rigTitle.textContent = TEXT[kind][0];
+    rigText.textContent = TEXT[kind][1];
     rigDialog.classList.toggle('modal--wide', ids.length > 3);
     rigGrid.textContent = '';
-    rigGrid.dataset.kind = kind === 'cut' ? 'low' : 'win';
+    // Glow = the colour of the placement she will get (see riggory.css)
+    rigGrid.dataset.kind = kind === 'cut' ? 'finale-cut' : kind === 'win' ? 'finale-win' : 'crown-ls';
 
     function paint() {
       Array.from(rigGrid.children).forEach(function (child, i) {
