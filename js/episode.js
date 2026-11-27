@@ -527,9 +527,12 @@ const Episode = (function () {
      rebuilt from the edited draft. The draft is recorded for real (placements,
      wins, elimination) just before the 'shantay' scene. */
   function previewLog(d) {
-    return { episode: season.episode, queensLeft: d.n,
-             appearing: d.active.map(function (q) { return q.id; }),
-             events: d.events.concat(GRX.resultEvents(d)) };
+    const log = { episode: season.episode,
+                  queensLeft: d.kind === 'premiere' ? d.everyone.length : d.n,
+                  appearing: d.active.map(function (q) { return q.id; }),
+                  events: d.events.concat(GRX.resultEvents(d)) };
+    if (d.kind === 'premiere') log.premiere = true;
+    return log;
   }
 
   // A pickable queen: same look as the cast cards (photo, name, green ring + tick)
@@ -578,23 +581,39 @@ const Episode = (function () {
     document.body.appendChild(rigDialog);
   }
 
-  function openRig(mode) {
-    if (!draft) return;
-    const opts = GRX.rigOptions(draft);
-    if (!opts) return;
-    ensureRigDialog();
-
-    const pick = { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id };
+  // Which pick screens the popup has for this draft ([] = nothing to change)
+  function rigStepsFor(mode, opts) {
     const steps = [];
-    if (mode === 'lipsync') steps.push('stay');
-    else {
+    if (!opts) return steps;
+    if (draft.kind === 'premiere') {
+      if (mode === 'lipsync') steps.push('lswin');
+      else if (opts.top2.length > 2) steps.push('top2');
+    } else if (mode === 'lipsync') {
+      steps.push('stay');
+    } else {
       if (opts.win.length > 1) steps.push('win');
       if (opts.low.length > 1) steps.push('low');
     }
+    return steps;
+  }
+
+  function openRig(mode) {
+    if (!draft) return;
+    const opts = GRX.rigOptions(draft);
+    const steps = rigStepsFor(mode, opts);
     if (!steps.length) return;
+    ensureRigDialog();
+
+    const premiere = draft.kind === 'premiere';
+    const pick = premiere
+      ? { top2: draft.pair.map(function (q) { return q.id; }), lswin: draft.winner.id }
+      : { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id };
     let step = 0;
 
-    const TEXT = {
+    const TEXT = premiere ? {
+      top2:  ['Choose the top 2', 'Pick the two queens who lip sync for the win. The other tops will be HIGH.', opts.top2],
+      lswin: ['Choose the winner', 'Pick who wins the lip sync. The other queen is TOP 2.', opts.win]
+    } : {
       win:  ['Choose the winner', 'Pick who wins this week\u2019s challenge. The other top queens will be HIGH.', opts.win],
       low:  ['Choose who is safe', 'Pick the queen who is safe from the bottom (LOW). The other two are up for elimination.', opts.low],
       stay: ['Choose who stays', 'Pick the queen who stays. The other queen sashays away.', opts.out]
@@ -612,6 +631,8 @@ const Episode = (function () {
       if (steps.indexOf('win') !== -1) edits.win = pick.win;
       if (steps.indexOf('low') !== -1) edits.low = pick.low;
       if (steps.indexOf('stay') !== -1) edits.out = opts.out.find(function (id) { return id !== pick.stay; });
+      if (steps.indexOf('top2') !== -1) edits.top2 = pick.top2;
+      if (steps.indexOf('lswin') !== -1) edits.win = pick.lswin;
       draft = GRX.applyRig(draft, edits);
       currentLog = previewLog(draft);
       scenes = buildScenes(currentLog);              // same scenes, new results
@@ -621,28 +642,48 @@ const Episode = (function () {
 
     function render() {
       const kind = steps[step];
+      const multi = kind === 'top2';                 // pick exactly 2
       rigTitle.textContent = TEXT[kind][0];
       rigText.textContent = TEXT[kind][1];
+      rigDialog.classList.toggle('modal--wide', multi);
 
-      rigGrid.textContent = '';
-      rigGrid.dataset.kind = kind;                 // colours the glow (win / low / stay)
-      TEXT[kind][2].forEach(function (id) {
-        const b = rigCard(id, pick[kind] === id);
-        b.addEventListener('click', function () {
-          pick[kind] = id;
-          Array.from(rigGrid.children).forEach(function (child) {
-            child.classList.toggle('is-selected', child === b);
-            child.setAttribute('aria-pressed', String(child === b));
-          });
-        });
-        rigGrid.appendChild(b);
-      });
-
+      // Buttons first, so a pick can switch Next / Lock In on and off
       rigActions.textContent = '';
       rigActions.appendChild(button('Cancel', 'rig-cancel', function () { rigDialog.close(); }));
       if (step > 0) rigActions.appendChild(button('Back', 'rig-back', function () { step--; render(); }));
-      if (step < steps.length - 1) rigActions.appendChild(button('Next', 'rig-next', function () { step++; render(); }));
-      else rigActions.appendChild(button('Lock In', 'rig-lock', lockIn));
+      const last = step === steps.length - 1;
+      const go = last ? button('Lock In', 'rig-lock', lockIn)
+                      : button('Next', 'rig-next', function () { step++; render(); });
+      rigActions.appendChild(go);
+      function ready() { go.disabled = multi && pick.top2.length !== 2; }
+      ready();
+
+      rigGrid.textContent = '';
+      rigGrid.dataset.kind = multi ? 'top2' : (kind === 'lswin' ? 'win' : kind);   // colours the glow
+      function paint() {
+        Array.from(rigGrid.children).forEach(function (child, i) {
+          const id = TEXT[kind][2][i];
+          const on = multi ? pick.top2.indexOf(id) !== -1 : pick[kind] === id;
+          child.classList.toggle('is-selected', on);
+          child.setAttribute('aria-pressed', String(on));
+        });
+      }
+      TEXT[kind][2].forEach(function (id) {
+        const b = rigCard(id, false);
+        b.addEventListener('click', function () {
+          if (multi) {
+            const at = pick.top2.indexOf(id);
+            if (at !== -1) pick.top2.splice(at, 1);            // click again = unpick
+            else { pick.top2.push(id); if (pick.top2.length > 2) pick.top2.shift(); }
+          } else {
+            pick[kind] = id;
+          }
+          paint();
+          ready();
+        });
+        rigGrid.appendChild(b);
+      });
+      paint();
     }
 
     render();
@@ -657,7 +698,11 @@ const Episode = (function () {
     if (season.finale && allShown) nextBtn.textContent = 'New season';
     else nextBtn.textContent = (allShown && season.done) ? 'To the finale' : 'Continue';
     // Choose Outcome: only with riggory on, on the scenes just before a result
-    if (rigBtn) rigBtn.hidden = !(draft && (shownId === 'critiques' || shownId === 'lipsync'));
+    if (rigBtn) {
+      const mode = shownId === 'lipsync' ? 'lipsync' : 'results';
+      rigBtn.hidden = !(draft && (shownId === 'critiques' || shownId === 'lipsync') &&
+                        rigStepsFor(mode, GRX.rigOptions(draft)).length);
+    }
   }
 
   function start() {
@@ -686,8 +731,8 @@ const Episode = (function () {
       } else {
         if (rigOn) {
           const d = GRX.prepareEpisode(season);
-          if (d && d.kind === 'regular') { draft = d; currentLog = previewLog(d); }   // recorded later
-          else currentLog = d ? GRX.commitEpisode(season, d) : null;                  // premieres: no riggory yet
+          if (d) { draft = d; currentLog = previewLog(d); }          // recorded later (see below)
+          else currentLog = null;
         } else {
           currentLog = GRX.runEpisode(season);
         }
@@ -697,7 +742,8 @@ const Episode = (function () {
       }
     }
     const scene = scenes[sceneIndex++];
-    if (draft && scene.id === 'shantay') {            // the result is final now: record it
+    // The result is final now: record it (regular: before 'shantay', premiere: before 'winner')
+    if (draft && (scene.id === 'shantay' || scene.id === 'winner')) {
       currentLog = GRX.commitEpisode(season, draft);
       draft = null;
     }

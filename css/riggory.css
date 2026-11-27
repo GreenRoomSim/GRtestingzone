@@ -17,6 +17,7 @@
 
 /* ---------- The popup ---------- */
 .modal--rig { width: min(92vw, 400px); padding: 26px 22px 24px; }
+.modal--rig.modal--wide { width: min(92vw, 460px); }   /* picking the top 2: up to 5 queens */
 .modal--rig .modal-title { font-size: 1.6rem; margin-bottom: 8px; }
 .modal--rig .modal-text { margin-bottom: 18px; font-size: 0.95rem; }
 
@@ -37,6 +38,7 @@
 }
 .rig-grid[data-kind="win"] { --rig-glow: #4169e1; }   /* same as the WIN tag */
 .rig-grid[data-kind="low"] { --rig-glow: #ea9999; }                     /* same as the LOW tag */
+.rig-grid[data-kind="top2"] { --rig-glow: #00bfff; }                    /* same as the TOP 2 tag */
 
 .modal--rig .rig-grid .queen-card {
   /* fixed small size, so nothing else can stretch it */
@@ -46,6 +48,8 @@
   min-width: 0;
   opacity: 0.72;
 }
+.modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 72px !important; height: 90px !important; }
+.modal--rig .rig-grid[data-kind="top2"] { gap: 8px; }
 .modal--rig .rig-grid .queen-card::before { display: none; }   /* the 4:5 spacer isn't needed with a fixed size */
 .rig-grid .queen-card:hover,
 .rig-grid .queen-card:focus-visible { opacity: 1; }

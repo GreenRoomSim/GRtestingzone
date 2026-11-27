@@ -149,8 +149,8 @@ const GRX = (function () {
   // The rest of a premiere episode, after challenge + runway have been scored.
   // No bottoms and no elimination: the top of the week is SAFE/HIGH, and the
   // best two lip sync for the win (winner: WIN, loser: TOP2).
-  function finishPremiere(state, everyone, active, ranked, events) {
-    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+  // Returns a DRAFT (nothing is recorded until commitEpisode).
+  function preparePremiere(state, everyone, active, ranked, events) {
     const topCount = Math.max(2, Math.min(state.premiere.tops, active.length));
     const tops = ranked.slice(0, topCount);
     const safe = ranked.slice(topCount);
@@ -160,37 +160,11 @@ const GRX = (function () {
       return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
     }).sort(function (a, b) { return b.s - a.s; });
     const winner = ls[0].q, loser = ls[1].q;
-
-    const placement = {};
-    safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
-    tops.forEach(function (q) { placement[q.id] = 'HIGH'; });
-    placement[winner.id] = 'WIN';
-    placement[loser.id] = 'TOP2';
-
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
-    const others = tops.filter(function (q) { return q !== winner && q !== loser; });
 
-    events.push({ type: 'safe', queens: ids(safe) });
-    events.push({ type: 'critiques', tops: ids(tops), bottoms: [] });
-    events.push({ type: 'results', win: null, high: ids(others), low: null, btm2: [],
-                  top2: ids(pair), premiere: true });
-    // kind 'top2' = lip sync for the win (no one goes home). stay/winner = the winner.
-    events.push({ type: 'lipsync', kind: 'top2', queens: ids(pair), winner: winner.id,
-                  loser: loser.id, stay: winner.id, forcedByCap: false,
-                  song: song ? { id: song.id, title: song.title, artist: song.artist } : null });
-
-    // Records. Queens who weren't in this episode (the other half of a split
-    // premiere) get null = a blank tile on the track record.
-    everyone.forEach(function (q) { q.placements.push(placement[q.id] || null); });
-    winner.wins++;
-    state.lastWinner = winner.id;
-
-    const log = { episode: state.episode, queensLeft: everyone.length, premiere: true,
-                  appearing: ids(active), events: events };
-    state.episodes.push(log);
-    state.episode++;
-    if (activeQueens(state).length <= state.finaleAt) state.done = true;
-    return log;
+    return { kind: 'premiere', events: events, everyone: everyone, active: active,
+             tops: tops,           // everyone in the top of the week (includes the top 2)
+             safe: safe, pair: pair, winner: winner, loser: loser, song: song };
   }
 
 
@@ -249,11 +223,8 @@ const GRX = (function () {
     // Rank best to worst
     const ranked = active.slice().sort(function (a, b) { return total[b.id] - total[a.id]; });
 
-    // Premieres: finished as before (Riggory for premieres comes in a later phase)
-    if (isPremiere) {
-      return { kind: 'premiere', events: events,
-               finish: function () { return finishPremiere(state, everyone, active, ranked, events); } };
-    }
+    // Premieres: a draft too (top 2 lip sync for the win)
+    if (isPremiere) return preparePremiere(state, everyone, active, ranked, events);
 
     // Regular episode: decide the placements
     const tops = ranked.slice(0, shape.top);
@@ -302,6 +273,19 @@ const GRX = (function () {
   // uses it to show a PREVIEW before the draft is committed (Riggory).
   function resultEvents(d) {
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    if (d.kind === 'premiere') {
+      const others = d.tops.filter(function (q) { return q !== d.winner && q !== d.loser; });
+      return [
+        { type: 'safe', queens: ids(d.safe) },
+        { type: 'critiques', tops: ids(d.tops), bottoms: [] },
+        { type: 'results', win: null, high: ids(others), low: null, btm2: [],
+          top2: ids(d.pair), premiere: true },
+        // kind 'top2' = lip sync for the win (no one goes home). stay/winner = the winner.
+        { type: 'lipsync', kind: 'top2', queens: ids(d.pair), winner: d.winner.id,
+          loser: d.loser.id, stay: d.winner.id, forcedByCap: false,
+          song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null }
+      ];
+    }
     return [
       { type: 'safe', queens: ids(d.safe) },
       { type: 'critiques', tops: ids(d.tops), bottoms: ids(d.bottoms) },
@@ -314,7 +298,29 @@ const GRX = (function () {
   }
 
   function commitEpisode(state, d) {
-    if (d.kind === 'premiere') return d.finish();
+    if (d.kind === 'premiere') {
+      const ids0 = function (list) { return list.map(function (q) { return q.id; }); };
+      if (d.rigged) state.rigged = true;
+      const placement = {};
+      d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
+      d.tops.forEach(function (q) { placement[q.id] = 'HIGH'; });
+      placement[d.winner.id] = 'WIN';
+      placement[d.loser.id] = 'TOP2';
+      const events = d.events.concat(resultEvents(d));
+
+      // Records. Queens who weren't in this episode (the other half of a split
+      // premiere) get null = a blank tile on the track record.
+      d.everyone.forEach(function (q) { q.placements.push(placement[q.id] || null); });
+      d.winner.wins++;
+      state.lastWinner = d.winner.id;
+
+      const log = { episode: state.episode, queensLeft: d.everyone.length, premiere: true,
+                    appearing: ids0(d.active), events: events };
+      state.episodes.push(log);
+      state.episode++;
+      if (activeQueens(state).length <= state.finaleAt) state.done = true;
+      return log;
+    }
 
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     if (d.rigged) state.rigged = true;
@@ -351,16 +357,45 @@ const GRX = (function () {
               takes her place in the BTM2 (and her role in the lip sync).
          out: id of a BTM2 queen. She goes home, the other one stays.
      Rigged results ignore the hidden rules (BTM2 cap, repeat winners). Once
-     committed they count like any other result. Regular episodes only for now. */
+     committed they count like any other result. Regular and premiere episodes (finales come later). */
   function rigOptions(d) {
-    if (!d || d.kind !== 'regular') return null;
+    if (!d) return null;
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    if (d.kind === 'premiere') return { top2: ids(d.tops), win: ids(d.pair) };
     return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2) };
   }
 
+  // Premiere: top2 = [id, id] from the tops (they lip sync for the win);
+  // win = id of one of the two (she gets WIN, the other TOP2).
+  function applyPremiereRig(d, edits) {
+    const r = Object.assign({}, d);
+    const pick = function (list, id, slot) {
+      const q = list.find(function (x) { return x.id === id; });
+      if (!q) throw new Error('applyRig: "' + id + '" can\'t be chosen for ' + slot + ' here.');
+      return q;
+    };
+    if (edits.top2) {
+      if (!Array.isArray(edits.top2) || edits.top2.length !== 2 || edits.top2[0] === edits.top2[1]) {
+        throw new Error('applyRig: top2 needs two different queens.');
+      }
+      const a = pick(d.tops, edits.top2[0], 'top2'), b = pick(d.tops, edits.top2[1], 'top2');
+      r.pair = [a, b];
+      // Keep the old winner if she is still in the pair, otherwise the first pick wins
+      r.winner = r.pair.indexOf(d.winner) !== -1 ? d.winner : a;
+      r.loser = r.pair.find(function (q) { return q !== r.winner; });
+    }
+    if (edits.win) {
+      r.winner = pick(r.pair, edits.win, 'win');
+      r.loser = r.pair.find(function (q) { return q !== r.winner; });
+    }
+    r.rigged = !!d.rigged || r.winner !== d.winner || r.loser !== d.loser;
+    return r;
+  }
+
   function applyRig(d, edits) {
-    if (!d || d.kind !== 'regular') throw new Error('applyRig: only regular episodes can be rigged so far.');
+    if (!d) throw new Error('applyRig: no draft.');
     edits = edits || {};
+    if (d.kind === 'premiere') return applyPremiereRig(d, edits);
     const r = Object.assign({}, d, { tops: d.tops.slice(), btm2: d.btm2.slice() });
     const pick = function (list, id, slot) {
       const q = list.find(function (x) { return x.id === id; });
