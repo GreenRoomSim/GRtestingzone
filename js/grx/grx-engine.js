@@ -584,6 +584,72 @@ const GRX = (function () {
   }
 
 
+
+  /* ---------- Riggory for finales (Top 3 / Top 4; not Lip Sync For The Crown yet) ----------
+     finaleRigOptions(state) -> { cut: [ids] (empty if no cut), win: [ids] } or null
+     applyFinaleRig(state, { cut: id, win: id })
+       cut: (Top 4 only) the queen sent home before the final lip sync. The old
+            cut queen re-enters as a finalist.
+       win: the winner. Everyone else keeps their order as runners-up.
+     The finale is already recorded when this runs, so it undoes the old
+     result and records the new one. */
+  function finaleRigOptions(state) {
+    const f = state.finale;
+    if (!f || f.format === 'crown') return null;
+    return { cut: f.cut ? f.entrants.slice() : [], win: f.finalists.slice() };
+  }
+
+  function applyFinaleRig(state, edits) {
+    const f = state.finale;
+    if (!f || f.format === 'crown') throw new Error('applyFinaleRig: nothing to rig here.');
+    edits = edits || {};
+    const byId = function (id) { return state.queens.find(function (q) { return q.id === id; }); };
+    const oldCut = f.cut, oldWinner = f.winner;
+
+    let cut = oldCut;
+    if (edits.cut) {
+      if (!oldCut || f.entrants.indexOf(edits.cut) === -1) throw new Error('applyFinaleRig: "' + edits.cut + '" can\'t be cut here.');
+      cut = edits.cut;
+    }
+    const finalists = f.entrants.filter(function (id) { return id !== cut; });
+
+    // Finishing order: the old order, anyone new (the re-entering queen) at the end
+    let order = [f.winner].concat(f.runnersUp).filter(function (id) { return finalists.indexOf(id) !== -1; });
+    finalists.forEach(function (id) { if (order.indexOf(id) === -1) order.push(id); });
+    if (edits.win) {
+      if (order.indexOf(edits.win) === -1) throw new Error('applyFinaleRig: "' + edits.win + '" isn\'t a finalist.');
+      order = [edits.win].concat(order.filter(function (id) { return id !== edits.win; }));
+    }
+
+    // Undo the old result
+    f.finalists.forEach(function (id) { byId(id).placements.pop(); });
+    if (oldCut) {
+      const q = byId(oldCut);
+      q.status = 'active'; q.eliminatedEp = null; q.finaleCut = false;
+    }
+    f.entrants.forEach(function (id) { byId(id).finalRank = null; });
+
+    // Record the new one
+    order.forEach(function (id, i) {
+      const q = byId(id);
+      q.finalRank = i + 1;
+      q.placements.push(i === 0 ? 'WINNER' : 'RUNNER UP');
+    });
+    if (cut) {
+      const q = byId(cut);
+      q.status = 'eliminated'; q.eliminatedEp = state.episodes.length + 1;
+      q.finaleCut = true; q.finalRank = f.entrants.length;
+    }
+
+    f.cut = cut;
+    f.finalists = finalists;
+    f.winner = order[0];
+    f.runnersUp = order.slice(1);
+    state.winner = order[0];
+    if (cut !== oldCut || order[0] !== oldWinner) { state.rigged = true; f.rigged = true; }
+    return f;
+  }
+
   /* ---------- Testing: run many seasons ---------- */
   // Returns one row per queen, best "final 3" rate first.
   function simulate(count, queens, settings) {
@@ -615,7 +681,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, applyRig: applyRig, resultEvents: resultEvents, rigOptions: rigOptions, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
+  return { newSeason: newSeason, prepareEpisode: prepareEpisode, commitEpisode: commitEpisode, applyRig: applyRig, resultEvents: resultEvents, rigOptions: rigOptions, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale, applyFinaleRig: applyFinaleRig, finaleRigOptions: finaleRigOptions,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();

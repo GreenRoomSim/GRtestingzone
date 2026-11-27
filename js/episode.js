@@ -692,6 +692,71 @@ const Episode = (function () {
   }
 
 
+  /* ---------- Riggory: finale (Top 3 / Top 4) ----------
+     'finale-cut-announce' (Top 4): choose who is cut.
+     'finale-decision': choose the winner.
+     The finale is already recorded, so Lock In patches it (GRX.applyFinaleRig)
+     and rebuilds the finale scenes, keeping the current position. */
+  function finaleRigKind() {
+    if (!rigOn || !season || !season.finale || !currentLog || !currentLog.finale) return null;
+    const opts = GRX.finaleRigOptions(season);
+    if (!opts) return null;                                   // Lip Sync For The Crown: later
+    if (shownId === 'finale-cut-announce' && opts.cut.length) return 'cut';
+    if (shownId === 'finale-decision' && opts.win.length > 1) return 'win';
+    return null;
+  }
+
+  function openFinaleRig(kind) {
+    const opts = GRX.finaleRigOptions(season);
+    if (!opts) return;
+    ensureRigDialog();
+    const ids = opts[kind];
+    let picked = kind === 'cut' ? currentLog.cut : currentLog.winner;
+
+    rigTitle.textContent = kind === 'cut' ? 'Choose who is cut' : 'Choose the winner';
+    rigText.textContent = kind === 'cut'
+      ? 'Pick the queen who does not make it to the final lip sync.'
+      : 'Pick the queen who wins the season. The others are runners-up.';
+    rigDialog.classList.toggle('modal--wide', ids.length > 3);
+    rigGrid.textContent = '';
+    rigGrid.dataset.kind = kind === 'cut' ? 'low' : 'win';
+
+    function paint() {
+      Array.from(rigGrid.children).forEach(function (child, i) {
+        child.classList.toggle('is-selected', ids[i] === picked);
+        child.setAttribute('aria-pressed', String(ids[i] === picked));
+      });
+    }
+    ids.forEach(function (id) {
+      const b = rigCard(id, false);
+      b.addEventListener('click', function () { picked = id; paint(); });
+      rigGrid.appendChild(b);
+    });
+    paint();
+
+    rigActions.textContent = '';
+    const cancel = make('button', 'btn small rig-cancel', 'Cancel');
+    cancel.type = 'button';
+    cancel.addEventListener('click', function () { rigDialog.close(); });
+    const lock = make('button', 'btn small rig-lock', 'Lock In');
+    lock.type = 'button';
+    lock.addEventListener('click', function () {
+      const edits = {};
+      edits[kind] = picked;
+      GRX.applyFinaleRig(season, edits);
+      currentLog = season.finale;
+      scenes = buildFinaleScenes(currentLog);                 // same scenes, new result
+      updateDev(scenes[sceneIndex - 1]);
+      rigDialog.close();
+    });
+    rigActions.appendChild(cancel);
+    rigActions.appendChild(lock);
+
+    document.body.classList.add('rig-open');
+    rigDialog.showModal();
+  }
+
+
   /* ---------- 5. Buttons and start-up ---------- */
   function updateButton() {
     const allShown = sceneIndex >= scenes.length;
@@ -700,8 +765,9 @@ const Episode = (function () {
     // Choose Outcome: only with riggory on, on the scenes just before a result
     if (rigBtn) {
       const mode = shownId === 'lipsync' ? 'lipsync' : 'results';
-      rigBtn.hidden = !(draft && (shownId === 'critiques' || shownId === 'lipsync') &&
-                        rigStepsFor(mode, GRX.rigOptions(draft)).length);
+      const episodeRig = draft && (shownId === 'critiques' || shownId === 'lipsync') &&
+                         rigStepsFor(mode, GRX.rigOptions(draft)).length;
+      rigBtn.hidden = !(episodeRig || finaleRigKind());
     }
   }
 
@@ -795,7 +861,11 @@ const Episode = (function () {
     rigBtn.type = 'button';
     rigBtn.textContent = 'Choose Outcome';
     rigBtn.hidden = true;
-    rigBtn.addEventListener('click', function () { openRig(shownId === 'lipsync' ? 'lipsync' : 'results'); });
+    rigBtn.addEventListener('click', function () {
+      const fk = finaleRigKind();
+      if (fk) openFinaleRig(fk);
+      else openRig(shownId === 'lipsync' ? 'lipsync' : 'results');
+    });
     nextBtn.before(rigBtn);
   }
 
