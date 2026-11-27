@@ -692,7 +692,7 @@ const Episode = (function () {
         if (kind !== 'stay') return;
         [['shantay', 'Save both'], ['sashay', 'Eliminate both']].forEach(function (entry) {
           if (opts.doubles.indexOf(entry[0]) === -1) return;
-          const b = make('button', 'btn small rig-double-btn', entry[1]);
+          const b = make('button', 'rig-double-btn', entry[1]);
           b.type = 'button';
           b.setAttribute('aria-pressed', String(pick.double === entry[0]));
           b.addEventListener('click', function () {
