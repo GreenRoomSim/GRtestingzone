@@ -70,19 +70,54 @@ const GRX_CONFIG = {
 
   /* Maxi challenges. Add one entry to add a challenge, nothing else changes.
      weights use the stat keys from queens.js (comedy, design, performance,
-     acting, lipSync) and should add up to 1. */
+     acting, lipSync) and should add up to 1.
+
+     Filtering (all optional):
+       category:     'acting' | 'design' | 'performance'. The same category is
+                     very unlikely twice in a row (see categoryRepeatWeight).
+       stages:       when in the season it can appear, from the `stages` list
+                     below, e.g. ['start', 'middle']. Leave out = anywhere.
+       firstEpisode: 'only'  = episode 1 only (and it is picked there)
+                     'never' = anywhere except episode 1
+                     leave out = no rule */
   challenges: [
-    { id: 'design',      name: 'Design',      weights: { design: 1 } },
-    { id: 'acting',      name: 'Acting',      weights: { acting: 0.6, comedy: 0.4 } },
-    { id: 'improv',      name: 'Improv',      weights: { comedy: 0.6, acting: 0.4 } },
-    { id: 'girl-groups', name: 'Girl Groups', weights: { performance: 0.5, lipSync: 0.5 } },
-    { id: 'snatch-game', name: 'Snatch Game', weights: { comedy: 1 } },
-    { id: 'ball',        name: 'Ball',        weights: { design: 1 } },
-    { id: 'makeover',    name: 'Makeover',    weights: { design: 0.7, performance: 0.3 } },
-    { id: 'Advert',      name: 'Advert',      weights: { acting: 0.5, comedy: 0.5 } },
-    { id: 'rusical',     name: 'Rusical',     weights: { performance: 0.7, acting: 0.3 } },
-    { id: 'talent-show', name: 'Talent Show', weights: { performance: 0.7, lipSync: 0.3 } },
+    { id: 'talent-show', name: 'Talent Show', category: 'performance', firstEpisode: 'only',
+      weights: { performance: 0.7, lipSync: 0.3 } },
+    { id: 'design',      name: 'Design',      category: 'design',
+      weights: { design: 1 } },
+    { id: 'acting',      name: 'Acting',      category: 'acting', firstEpisode: 'never',
+      weights: { acting: 0.6, comedy: 0.4 } },
+    { id: 'improv',      name: 'Improv',      category: 'acting', firstEpisode: 'never',
+      weights: { comedy: 0.6, acting: 0.4 } },
+    { id: 'rusical',     name: 'Rusical',     category: 'performance', stages: ['middle'],
+      weights: { performance: 0.7, acting: 0.3 } },
+    { id: 'snatch-game', name: 'Snatch Game', category: 'acting', stages: ['middle'],
+      weights: { comedy: 1 } },
+    { id: 'girl-groups', name: 'Girl Groups', category: 'performance', stages: ['start', 'middle'],
+      weights: { performance: 0.5, lipSync: 0.5 } },
+    { id: 'advert',      name: 'Advert',      category: 'acting', firstEpisode: 'never',
+      weights: { acting: 0.5, comedy: 0.5 } },
+    { id: 'ball',        name: 'Ball',        category: 'design', firstEpisode: 'never',
+      weights: { design: 1 } },
+    { id: 'makeover',    name: 'Makeover',    category: 'design', stages: ['end'],
+      weights: { design: 0.7, performance: 0.3 } }
   ],
+
+  /* Season stages, as how far through the regular season it is:
+     0 = first episode, 1 = last episode before the finale. They overlap on
+     purpose so a challenge has a few episodes of room. A challenge with several
+     stages can appear from the earliest start to the latest end
+     (['start','middle'] = 0 to 0.7). */
+  stages: {
+    start:  [0,    0.35],
+    middle: [0.30, 0.70],
+    end:    [0.65, 1]
+  },
+
+  /* Variety: how likely a challenge is compared with normal (1) when it is in
+     the same category as the challenge LAST episode / the one before that. */
+  categoryRepeatWeight: 0.1,
+  categoryGapWeight: 0.5,
 
   /* Episode shape by queens left. The first row with queensLeft >= minQueens
      is used. safe: 'rest' = everyone not in the top or bottom group.

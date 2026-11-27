@@ -102,17 +102,65 @@ const GRX = (function () {
     return statMix(queen, weights) + gauss(state.rng) * sd;
   }
 
+  // How far through the regular season we are: 0 = first episode, 1 = last
+  // episode before the finale.
+  function seasonProgress(state) {
+    const total = state.premiere.episodes + Math.max(0, state.queens.length - state.finaleAt);
+    return total > 1 ? Math.min(1, state.episodes.length / (total - 1)) : 0;
+  }
+
+  function stageWindow(challenge) {
+    if (!challenge.stages || !challenge.stages.length || !C.stages) return [0, 1];
+    let lo = 1, hi = 0;
+    challenge.stages.forEach(function (name) {
+      const s = C.stages[name];
+      if (!s) return;
+      lo = Math.min(lo, s[0]); hi = Math.max(hi, s[1]);
+    });
+    return lo > hi ? [0, 1] : [lo, hi];
+  }
+
   function pickChallenge(state) {
     const hist = state.challengeHistory;
-    const recent = hist.slice(-C.challengeCooldown);
-    let pool = C.challenges.filter(function (c) { return recent.indexOf(c.id) === -1; });
+    const first = state.episode === 1;
+    const p = seasonProgress(state);
+    const byId = function (id) { return C.challenges.find(function (c) { return c.id === id; }); };
 
-    if (pool.length === 0) {             // cooldown too big: least recently used
-      pool = C.challenges.slice().sort(function (a, b) {
-        return hist.lastIndexOf(a.id) - hist.lastIndexOf(b.id);
-      }).slice(0, 1);
+    // Episode 1: a 'first episode only' challenge (Talent Show) is picked
+    if (first) {
+      const openers = C.challenges.filter(function (c) { return c.firstEpisode === 'only'; });
+      if (openers.length) return openers[Math.floor(state.rng() * openers.length)];
     }
-    return pool[Math.floor(state.rng() * pool.length)];
+
+    const firstOk = function (c) {
+      if (c.firstEpisode === 'only') return first;
+      if (c.firstEpisode === 'never') return !first;
+      return true;
+    };
+    const stageOk = function (c) { const w = stageWindow(c); return p >= w[0] && p <= w[1]; };
+    const coolOk  = function (c) { return hist.slice(-C.challengeCooldown).indexOf(c.id) === -1; };
+
+    // Strictest first; relax the stage window, then the cooldown, if nothing is left
+    let pool = C.challenges.filter(function (c) { return firstOk(c) && stageOk(c) && coolOk(c); });
+    if (!pool.length) pool = C.challenges.filter(function (c) { return firstOk(c) && coolOk(c); });
+    if (!pool.length) pool = C.challenges.filter(firstOk);
+    if (!pool.length) pool = C.challenges.slice();
+
+    // Variety: same category as last episode (or the one before) is much less likely
+    const lastCat = hist.length > 0 && byId(hist[hist.length - 1]) ? byId(hist[hist.length - 1]).category : null;
+    const gapCat  = hist.length > 1 && byId(hist[hist.length - 2]) ? byId(hist[hist.length - 2]).category : null;
+    const weights = pool.map(function (c) {
+      if (!c.category) return 1;
+      if (c.category === lastCat) return C.categoryRepeatWeight;
+      if (c.category === gapCat) return C.categoryGapWeight;
+      return 1;
+    });
+    let roll = state.rng() * weights.reduce(function (a, b) { return a + b; }, 0);
+    for (let i = 0; i < pool.length; i++) {
+      roll -= weights[i];
+      if (roll < 0) return pool[i];
+    }
+    return pool[pool.length - 1];
   }
 
 
