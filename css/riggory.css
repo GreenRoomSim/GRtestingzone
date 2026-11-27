@@ -100,4 +100,9 @@ body.rig-open .confetti * { animation-play-state: paused !important; }
   font-style: italic;
   text-align: left;
   color: #8a8a8a;
+
+  /* Save both / Eliminate both buttons */
+.rig-double { display: flex; justify-content: center; gap: 12px; margin: 0 0 20px; }
+.rig-double:empty { display: none; }
+.rig-double-btn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--accent), 0 0 18px 4px var(--accent); }
 }

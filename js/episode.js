@@ -210,13 +210,25 @@ const Episode = (function () {
                text: song ? '\u266A ' + song.title + ' \u2013 ' + song.artist + ' \u266A' : '',
                groups: [{ big: true, vs: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
 
-    out.push({ id: 'shantay', title: 'Shantay, you stay',
-               text: name(ev.lipsync.stay) + ', shantay, you stay.',
-               groups: [{ big: true, items: [item(ev.lipsync.stay, null, null, 'glow')] }] });
+    if (ev.lipsync.double === 'shantay') {
+      // Double shantay: both stay, nobody goes home
+      out.push({ id: 'shantay', title: 'Double shantay',
+                 text: ev.lipsync.queens.map(name).join(' and ') + ', shantay, you both stay.',
+                 groups: [{ big: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+    } else if (ev.lipsync.double === 'sashay') {
+      // Double sashay: both go home
+      out.push({ id: 'double-sashay', title: 'Double sashay',
+                 text: ev.elimination.queens.map(name).join(' and ') + ', sashay away.',
+                 groups: [{ big: true, items: ev.elimination.queens.map(function (id) { return item(id, 'ELIMINATED', 'elim', 'out'); }) }] });
+    } else {
+      out.push({ id: 'shantay', title: 'Shantay, you stay',
+                 text: name(ev.lipsync.stay) + ', shantay, you stay.',
+                 groups: [{ big: true, items: [item(ev.lipsync.stay, null, null, 'glow')] }] });
 
-    out.push({ id: 'sashay', title: 'Sashay away',
-               text: name(ev.elimination.queen) + ', sashay away.',
-               groups: [{ big: true, items: [item(ev.elimination.queen, 'ELIMINATED', 'elim', 'out')] }] });
+      out.push({ id: 'sashay', title: 'Sashay away',
+                 text: name(ev.elimination.queen) + ', sashay away.',
+                 groups: [{ big: true, items: [item(ev.elimination.queen, 'ELIMINATED', 'elim', 'out')] }] });
+    }
 
     // Recap of every episode so far (gains one column per episode)
     out.push({ id: 'track', title: 'Track record', track: true });
@@ -510,6 +522,7 @@ const Episode = (function () {
       if (currentLog.premiere) {
         lines.push('Premiere: ' + season.premiere.id + '  (' + currentLog.appearing.length + ' queens in this episode)');
       } else {
+        if (ev.lipsync.double) lines.push('DOUBLE ' + ev.lipsync.double.toUpperCase());
         lines.push('BTM2 cap: ' + season.btm2Cap + (ev.lipsync.forcedByCap ? '  (elimination forced by cap)' : ''));
       }
     }
@@ -561,7 +574,7 @@ const Episode = (function () {
     return card;
   }
 
-  let rigDialog = null, rigTitle = null, rigText = null, rigGrid = null, rigActions = null;
+  let rigDialog = null, rigTitle = null, rigText = null, rigGrid = null, rigExtra = null, rigActions = null;
 
   function ensureRigDialog() {
     if (rigDialog) return;
@@ -571,13 +584,14 @@ const Episode = (function () {
     rigTitle.id = 'rig-title';
     rigText = make('p', 'modal-text');
     rigGrid = make('div', 'rig-grid');
+    rigExtra = make('div', 'rig-double');     // Save both / Eliminate both (lip sync pick only)
     rigActions = make('div', 'rig-actions');
     // Escape closes the popup only (it must not also send you back to Home)
     rigDialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
     rigDialog.addEventListener('click', function (event) { if (event.target === rigDialog) rigDialog.close(); });
     // While the popup is open, the animations behind it are paused (keeps it smooth)
     rigDialog.addEventListener('close', function () { document.body.classList.remove('rig-open'); });
-    [rigTitle, rigText, rigGrid, rigActions].forEach(function (n) { rigDialog.appendChild(n); });
+    [rigTitle, rigText, rigGrid, rigExtra, rigActions].forEach(function (n) { rigDialog.appendChild(n); });
     document.body.appendChild(rigDialog);
   }
 
@@ -607,7 +621,7 @@ const Episode = (function () {
     const premiere = draft.kind === 'premiere';
     const pick = premiere
       ? { top2: draft.pair.map(function (q) { return q.id; }), lswin: draft.winner.id }
-      : { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id };
+      : { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id, double: draft.double || null };
     let step = 0;
 
     const TEXT = premiere ? {
@@ -616,7 +630,7 @@ const Episode = (function () {
     } : {
       win:  ['Choose the winner', 'Pick who wins this week\u2019s challenge. The other top queens will be HIGH.', opts.win],
       low:  ['Choose who is safe', 'Pick the queen who is safe from the bottom (LOW). The other two are up for elimination.', opts.low],
-      stay: ['Choose who stays', 'Pick the queen who stays. The other queen sashays away.', opts.out]
+      stay: ['Choose who stays', 'Pick the queen who stays, or save or eliminate both.', opts.out]
     };
 
     function button(label, className, onClick) {
@@ -630,7 +644,10 @@ const Episode = (function () {
       const edits = {};
       if (steps.indexOf('win') !== -1) edits.win = pick.win;
       if (steps.indexOf('low') !== -1) edits.low = pick.low;
-      if (steps.indexOf('stay') !== -1) edits.out = opts.out.find(function (id) { return id !== pick.stay; });
+      if (steps.indexOf('stay') !== -1) {
+        edits.double = pick.double;                 // null = a normal lip sync
+        if (!pick.double) edits.out = opts.out.find(function (id) { return id !== pick.stay; });
+      }
       if (steps.indexOf('top2') !== -1) edits.top2 = pick.top2;
       if (steps.indexOf('lswin') !== -1) edits.win = pick.lswin;
       draft = GRX.applyRig(draft, edits);
@@ -663,9 +680,27 @@ const Episode = (function () {
       function paint() {
         Array.from(rigGrid.children).forEach(function (child, i) {
           const id = TEXT[kind][2][i];
-          const on = multi ? pick.top2.indexOf(id) !== -1 : pick[kind] === id;
+          const on = multi ? pick.top2.indexOf(id) !== -1
+                   : (kind === 'stay' && pick.double) ? false : pick[kind] === id;
           child.classList.toggle('is-selected', on);
           child.setAttribute('aria-pressed', String(on));
+        });
+      }
+      // Save both / Eliminate both (regular lip syncs only)
+      function drawDoubles() {
+        rigExtra.textContent = '';
+        if (kind !== 'stay') return;
+        [['shantay', 'Save both'], ['sashay', 'Eliminate both']].forEach(function (entry) {
+          if (opts.doubles.indexOf(entry[0]) === -1) return;
+          const b = make('button', 'btn small rig-double-btn', entry[1]);
+          b.type = 'button';
+          b.setAttribute('aria-pressed', String(pick.double === entry[0]));
+          b.addEventListener('click', function () {
+            pick.double = pick.double === entry[0] ? null : entry[0];   // click again = back to normal
+            paint();
+            drawDoubles();
+          });
+          rigExtra.appendChild(b);
         });
       }
       TEXT[kind][2].forEach(function (id) {
@@ -677,13 +712,16 @@ const Episode = (function () {
             else { pick.top2.push(id); if (pick.top2.length > 2) pick.top2.shift(); }
           } else {
             pick[kind] = id;
+            if (kind === 'stay') pick.double = null;           // picking a queen cancels save/eliminate both
           }
           paint();
           ready();
+          drawDoubles();
         });
         rigGrid.appendChild(b);
       });
       paint();
+      drawDoubles();
     }
 
     render();
@@ -729,6 +767,7 @@ const Episode = (function () {
     rigText.textContent = TEXT[kind][1];
     rigDialog.classList.toggle('modal--wide', ids.length > 3);
     rigGrid.textContent = '';
+    rigExtra.textContent = '';
     // Glow = the colour of the placement she will get (see riggory.css)
     rigGrid.dataset.kind = kind === 'cut' ? 'finale-cut' : kind === 'win' ? 'finale-win' : 'crown-ls';
 
@@ -819,8 +858,8 @@ const Episode = (function () {
       }
     }
     const scene = scenes[sceneIndex++];
-    // The result is final now: record it (regular: before 'shantay', premiere: before 'winner')
-    if (draft && (scene.id === 'shantay' || scene.id === 'winner')) {
+    // The result is final now: record it (regular: before 'shantay' / 'double-sashay', premiere: before 'winner')
+    if (draft && (scene.id === 'shantay' || scene.id === 'double-sashay' || scene.id === 'winner')) {
       currentLog = GRX.commitEpisode(season, draft);
       draft = null;
     }

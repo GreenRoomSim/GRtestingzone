@@ -310,9 +310,16 @@ const GRX = (function () {
       stay = btm2.find(function (q) { return q !== out; });
       forcedByCap = true;
     }
+    // Double shantay / double sashay (regular lip syncs only)
+    const canDoubleSashay = n - 2 >= state.finaleAt;
+    let double = null;
+    const dr = state.rng();
+    if (dr < C.doubleShantayChance && !forcedByCap && capped.length === 0) double = 'shantay';
+    else if (dr >= 1 - C.doubleSashayChance && canDoubleSashay) double = 'sashay';
+
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
 
-    return { kind: 'regular', events: events, active: active, n: n,
+    return { kind: 'regular', double: double, canDoubleSashay: canDoubleSashay, events: events, active: active, n: n,
              tops: tops,           // [0] = winner, the rest HIGH
              safe: safe, low: low, btm2: btm2, bottoms: bottoms,
              stay: stay, out: out, forcedByCap: forcedByCap, song: song };
@@ -341,9 +348,13 @@ const GRX = (function () {
       { type: 'critiques', tops: ids(d.tops), bottoms: ids(d.bottoms) },
       { type: 'results', win: d.tops[0].id, high: ids(d.tops.slice(1)),
         low: d.low ? d.low.id : null, btm2: ids(d.btm2) },
-      { type: 'lipsync', queens: ids(d.btm2), stay: d.stay.id, forcedByCap: d.forcedByCap,
+      { type: 'lipsync', queens: ids(d.btm2), stay: d.stay.id, double: d.double || null,
+        forcedByCap: d.double ? false : d.forcedByCap,
         song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null },
-      { type: 'elimination', queen: d.out.id }
+      // queens = everyone sent home (none on a double shantay, two on a double sashay)
+      { type: 'elimination', double: d.double || null,
+        queen: d.double === 'shantay' ? null : d.out.id,
+        queens: d.double === 'shantay' ? [] : d.double === 'sashay' ? [d.out.id, d.stay.id] : [d.out.id] }
     ];
   }
 
@@ -385,11 +396,15 @@ const GRX = (function () {
     d.tops[0].wins++;
     state.lastWinner = d.tops[0].id;
     d.btm2.forEach(function (q) { q.lipSyncs++; });
-    d.out.status = 'eliminated';
-    d.out.eliminatedEp = state.episode;
-    state.eliminated.push({ id: d.out.id, episode: state.episode });
+    const goingHome = d.double === 'shantay' ? [] : d.double === 'sashay' ? [d.out, d.stay] : [d.out];
+    goingHome.forEach(function (q) {
+      q.status = 'eliminated';
+      q.eliminatedEp = state.episode;
+      state.eliminated.push({ id: q.id, episode: state.episode });
+    });
 
-    const log = { episode: state.episode, queensLeft: d.n, appearing: ids(d.active), events: events };
+    const log = { episode: state.episode, queensLeft: d.n, double: d.double || null,
+                  appearing: ids(d.active), events: events };
     state.episodes.push(log);
     state.episode++;
     if (activeQueens(state).length <= state.finaleAt) state.done = true;   // finale: see runFinale
@@ -398,7 +413,8 @@ const GRX = (function () {
 
   /* ---------- Riggory (user-altered results) ----------
      rigOptions(draft) -> who the user may pick in each slot:
-       { win: [tops], low: [bottoms] (empty if no LOW this episode), out: [BTM2 queens] }
+       { win: [tops], low: [bottoms] (empty if no LOW this episode), out: [BTM2 queens],
+         doubles: ['shantay', 'sashay'] (what 'double' may be set to) }
      applyRig(draft, edits) -> a NEW draft with the edits applied (the original
        is untouched, so Cancel = just keep using the original).
        edits (all optional):
@@ -412,7 +428,8 @@ const GRX = (function () {
     if (!d) return null;
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     if (d.kind === 'premiere') return { top2: ids(d.tops), win: ids(d.pair) };
-    return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2) };
+    return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2),
+             doubles: d.canDoubleSashay ? ['shantay', 'sashay'] : ['shantay'] };
   }
 
   // Premiere: top2 = [id, id] from the tops (they lip sync for the win);
@@ -475,7 +492,15 @@ const GRX = (function () {
       r.forcedByCap = false;
     }
 
-    r.rigged = !!d.rigged || r.tops[0] !== d.tops[0] || r.low !== d.low || r.out !== d.out;
+    // edits.double: 'shantay' (save both), 'sashay' (eliminate both) or null (normal)
+    if ('double' in edits) {
+      if (edits.double === 'sashay' && !d.canDoubleSashay) throw new Error('applyRig: a double sashay would leave too few queens.');
+      r.double = edits.double || null;
+      if (r.double) r.forcedByCap = false;
+    }
+
+    r.rigged = !!d.rigged || r.tops[0] !== d.tops[0] || r.low !== d.low || r.out !== d.out ||
+               (r.double || null) !== (d.double || null);
     return r;
   }
 

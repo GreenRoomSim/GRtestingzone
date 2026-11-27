@@ -90,7 +90,9 @@ const TrackRecord = (function () {
       }
       return a.name.localeCompare(b.name);
     });
-    out.sort(function (a, b) { return b.eliminatedEp - a.eliminatedEp; });
+    // Same episode (double sashay): the one who went out first sits lower
+    const outIndex = function (q) { return season.eliminated.findIndex(function (e) { return e.id === q.id; }); };
+    out.sort(function (a, b) { return (b.eliminatedEp - a.eliminatedEp) || (outIndex(b) - outIndex(a)); });
     return inComp.concat(out);
   }
 
@@ -116,6 +118,7 @@ const TrackRecord = (function () {
     }
     if (queen.finaleCut) return ordinal(queen.finalRank);      // cut in a Top 4 finale: 4th
     const log = season.episodes[queen.eliminatedEp - 1];
+    if (log && log.double === 'sashay') return ordinal(log.queensLeft - 1) + '/' + ordinal(log.queensLeft);   // double sashay: shared places
     return log ? ordinal(log.queensLeft) : '';
   }
 
@@ -176,8 +179,12 @@ const TrackRecord = (function () {
 
       episodes.forEach(function (log) {
         const placement = placementFor(queen, log.episode);
+        // Double sashay: both ELIMs get their own colour. Double shantay: both BTM2s do.
+        let cls = placement ? (PLACEMENT_CLASS[placement] || '') : '';
+        if (placement === 'ELIM' && log.double === 'sashay') cls += ' p-double-elim';
+        if (placement === 'BTM2' && log.double === 'shantay') cls += ' p-double-btm';
         row.appendChild(placement
-          ? make('td', PLACEMENT_CLASS[placement] || '', placement)
+          ? make('td', cls.trim(), placement)
           : make('td', 'p-gone'));
       });
 

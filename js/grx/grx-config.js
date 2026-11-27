@@ -51,6 +51,14 @@ const GRX_CONFIG = {
      her chance of being in the tops is unchanged. 1 = no effect, 0 = never. */
   repeatWinChance: 0.4,
 
+  /* Double shantay (both bottom queens stay) and double sashay (both go home).
+     Regular lip syncs only: never in premieres, never in finales. Chances are
+     per regular episode (0.05 = 5%, 0.0005 = 0.05%). A double sashay never
+     happens if it would take the season below the finale size. A double shantay
+     never happens when a queen has hit the BTM2 cap and has to go. */
+  doubleShantayChance: 0.05,
+  doubleSashayChance: 0.0005,
+
   /* Premiere formats (ids from data/options.js). Nobody goes home in a
      premiere. The TOP 2 queens of each premiere episode lip sync for the win:
      the winner gets a WIN, the loser gets TOP2.
