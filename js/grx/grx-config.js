@@ -146,6 +146,26 @@ const GRX_CONFIG = {
     premiereChance: 0.5      // 12+ queens
   },
 
+  /* LIP SYNC LEGACY format (Format on the setup screen). No winner from the
+     critiques: the TOP 2 lip sync for the win, and the winner CHOPS one of the
+     bottom queens (nobody else lip syncs). Bottom queens are marked BTM2 / BTM3.
+     shapes: the first row with queensLeft >= minQueens is used.
+       bottom:        queens in the bottom (the rest are SAFE)
+       bottom3Chance: chance the bottom is 3 instead (some bottom 3s mid season)
+     At 5 left everyone not in the top 2 is in the bottom, at 4 left too.
+     surpriseChance: the winner usually chops the weakest bottom queen (the
+     lowest score of the week), but with this chance picks another bottom queen.
+     Forced for now: Regular premiere, Top 3 finale, no extras. */
+  legacy: {
+    shapes: [
+      { minQueens: 10, bottom: 2 },
+      { minQueens: 7,  bottom: 2, bottom3Chance: 0.5 },
+      { minQueens: 5,  bottom: 3 },
+      { minQueens: 4,  bottom: 2 }
+    ],
+    surpriseChance: 0.25
+  },
+
   /* Season stages, as how far through the regular season it is:
      0 = first episode, 1 = last episode before the finale. They overlap on
      purpose so a challenge has a few episodes of room. A challenge with several

@@ -32,7 +32,7 @@ const Cast = (function () {
 
   /* ---------- 1. Settings ---------- */
   const CAST_MIN = 8;        // fewest queens you can start a season with
-  const CAST_MAX = 16;       // most queens you can pick
+  const CAST_MAX = 14;       // most queens you can pick
   const RESULT_LIMIT = 10;   // search results shown (the grid is 5 wide x 2 tall)
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
   const START_MESSAGE = 'Start searching to find your cast.';

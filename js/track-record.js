@@ -22,7 +22,7 @@ const TrackRecord = (function () {
 
   const PLACEMENT_CLASS = {
     WIN: 'p-win', TOP2: 'p-top2', HIGH: 'p-high', SAFE: 'p-safe',
-    LOW: 'p-low', BTM2: 'p-btm', ELIM: 'p-elim',
+    LOW: 'p-low', BTM2: 'p-btm', BTM3: 'p-btm', ELIM: 'p-elim',
     BTM1: 'p-btm', RUN: 'p-run', 'SAFE-C': 'p-safe-crit',
     WINNER: 'p-winner', 'RUNNER UP': 'p-runner', GUEST: 'p-guest'
   };
@@ -55,7 +55,7 @@ const TrackRecord = (function () {
   }
 
   // Best to worst, used to order the rows
-  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'BTM1', 'RUN', 'LOW', 'BTM2', 'ELIM'];
+  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'BTM1', 'RUN', 'LOW', 'BTM3', 'BTM2', 'ELIM'];
   function placementRank(p) {
     const i = PLACEMENT_ORDER.indexOf(p);
     return i === -1 ? PLACEMENT_ORDER.length : i;

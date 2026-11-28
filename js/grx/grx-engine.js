@@ -60,7 +60,12 @@ const GRX = (function () {
   }
 
   function newSeason(queens, settings) {
+    settings = settings || {};
+    // Lip Sync Legacy: Regular premiere, Top 3 finale, no extras (for now)
+    const legacy = settings.format === 'lipsync-legacy';
+    if (legacy) settings = Object.assign({}, settings, { premiere: 'regular', finale: 'top3', extras: [] });
     const season = seasonState(queens, settings);
+    season.legacy = legacy;
     // A Talent Show premiere replaces the Premiere setting (no special premiere)
     season.premiere = season.talentMode === 'premiere'
       ? { id: 'regular', episodes: 0, tops: 0 }
@@ -344,6 +349,38 @@ const GRX = (function () {
   }
 
 
+  /* ---------- Lip Sync Legacy ----------
+     The top 2 lip sync for the win, the winner chops one bottom queen.
+     `ranked` = this week's queens best to worst. Returns a DRAFT. */
+  function prepareLegacy(state, active, ranked, n, events) {
+    const L = C.legacy;
+    const row = L.shapes.find(function (r) { return n >= r.minQueens; }) || L.shapes[L.shapes.length - 1];
+    let bottom = row.bottom;
+    if (row.bottom3Chance && state.rng() < row.bottom3Chance) bottom = 3;
+    bottom = Math.min(bottom, n - 2);
+
+    const pair = ranked.slice(0, 2);
+    const bottoms = ranked.slice(n - bottom);          // best to worst: the weakest is last
+    const safe = ranked.slice(2, n - bottom);
+
+    const ls = pair.map(function (q) {
+      return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
+    }).sort(function (a, b) { return b.s - a.s; });
+
+    // The chop: usually the weakest bottom queen, sometimes a surprise pick
+    const weakest = bottoms[bottoms.length - 1];
+    let chopped = weakest;
+    if (bottoms.length > 1 && state.rng() < L.surpriseChance) {
+      const others = bottoms.filter(function (q) { return q !== weakest; });
+      chopped = others[Math.floor(state.rng() * others.length)];
+    }
+
+    const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+    return { kind: 'legacy', events: events, active: active, n: n, pair: pair,
+             winner: ls[0].q, loser: ls[1].q, safe: safe, bottoms: bottoms, chopped: chopped, song: song };
+  }
+
+
   /* ---------- One episode ----------
      Two stages, so the Riggory update can step in between them:
        prepareEpisode(state)        simulates the episode and returns a DRAFT
@@ -412,6 +449,9 @@ const GRX = (function () {
     // Premieres: a draft too (top 2 lip sync for the win)
     if (isPremiere) return preparePremiere(state, everyone, active, ranked, events);
     if (ts) return prepareTalentShow(state, ts, talentGroups, everyone, active, ranked, events);
+
+    // Lip Sync Legacy: top 2 lip sync, the winner chops a bottom queen
+    if (state.legacy) return prepareLegacy(state, active, ranked, n, events);
 
     // Regular episode: decide the placements
     const tops = ranked.slice(0, shape.top);
@@ -484,6 +524,18 @@ const GRX = (function () {
       }
       return evs;
     }
+    if (d.kind === 'legacy') {
+      return [
+        { type: 'safe', queens: ids(d.safe) },
+        { type: 'critiques', tops: ids(d.pair), bottoms: ids(d.bottoms) },
+        { type: 'results', legacy: true, win: d.winner.id, high: [], low: null, btm2: ids(d.bottoms), top2: ids(d.pair) },
+        { type: 'lipsync', kind: 'top2', queens: ids(d.pair), winner: d.winner.id, loser: d.loser.id,
+          stay: d.winner.id, forcedByCap: false,
+          song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null },
+        { type: 'chop', winner: d.winner.id, bottoms: ids(d.bottoms), chopped: d.chopped.id },
+        { type: 'elimination', double: null, queen: d.chopped.id, queens: [d.chopped.id] }
+      ];
+    }
     if (d.kind === 'premiere') {
       const others = d.tops.filter(function (q) { return q !== d.winner && q !== d.loser; });
       return [
@@ -514,6 +566,30 @@ const GRX = (function () {
 
   function commitEpisode(state, d) {
     if (d.kind === 'talent1' || d.kind === 'talent2') return commitTalentShow(state, d);
+    if (d.kind === 'legacy') {
+      const idsL = function (list) { return list.map(function (q) { return q.id; }); };
+      const placement = {};
+      d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
+      d.bottoms.forEach(function (q) { placement[q.id] = d.bottoms.length === 3 ? 'BTM3' : 'BTM2'; });
+      placement[d.winner.id] = 'WIN';
+      placement[d.loser.id] = 'TOP2';
+      const events = d.events.concat(resultEvents(d));
+
+      d.active.forEach(function (q) { q.placements.push(placement[q.id]); });
+      d.winner.wins++;
+      state.lastWinner = d.winner.id;
+      d.bottoms.forEach(function (q) { q.lipSyncs++; });      // a bottom appearance counts against her record
+      d.chopped.status = 'eliminated';
+      d.chopped.eliminatedEp = state.episode;
+      state.eliminated.push({ id: d.chopped.id, episode: state.episode });
+
+      const log = { episode: state.episode, queensLeft: d.n, double: null, legacy: true,
+                    appearing: idsL(d.active), events: events };
+      state.episodes.push(log);
+      state.episode++;
+      if (activeQueens(state).length <= state.finaleAt) state.done = true;
+      return log;
+    }
     if (d.kind === 'premiere') {
       const ids0 = function (list) { return list.map(function (q) { return q.id; }); };
       if (d.rigged) state.rigged = true;
@@ -582,6 +658,7 @@ const GRX = (function () {
   function rigOptions(d) {
     if (!d) return null;
     if (d.kind === 'talent1' || d.kind === 'talent2') return null;     // Riggory for the talent show: not built yet
+    if (d.kind === 'legacy') return null;                              // Riggory for Lip Sync Legacy: not built yet
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     if (d.kind === 'premiere') return { top2: ids(d.tops), win: ids(d.pair) };
     return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2),

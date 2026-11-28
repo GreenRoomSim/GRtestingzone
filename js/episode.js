@@ -236,10 +236,82 @@ const Episode = (function () {
     return out;
   }
 
+  // Lip Sync Legacy: the top 2 lip sync for the win, and the winner chops one
+  // of the bottom queens (nobody else lip syncs).
+  function buildLegacyScenes(log, ev) {
+    const out = [];
+    const everyone = ev.safe.queens.concat(ev.critiques.tops, ev.critiques.bottoms);
+    const r = ev.results, ch = ev.chop;
+    const winner = ev.lipsync.winner, loser = ev.lipsync.loser;
+
+    if (ev.entrance) {
+      out.push({ id: 'entrance', title: 'Welcome to the Werk Room',
+                 text: 'The queens enter one by one.',
+                 groups: [{ items: plain(ev.entrance.queens) }] });
+    }
+
+    out.push({ id: 'challenge', title: 'This week\u2019s maxi challenge', big: ev.challenge.name });
+    const cats = [];
+    C_BANDS().forEach(function (id) {
+      if (ev.challenge.bands[id].length) cats.push({ ids: ev.challenge.bands[id], text: BAND_TEXT[id] });
+    });
+    out.push({ id: 'challenge-perform', kicker: 'The main challenge', title: ev.challenge.name, cats: cats });
+
+    out.push({ id: 'runway', kicker: 'The runway',
+               title: ev.runway.theme ? ev.runway.theme.name : 'The runway',
+               text: 'The queens walk the runway.',
+               groups: [{ items: plain(everyone) }] });
+
+    if (ev.safe.queens.length) {
+      out.push({ id: 'safe', title: 'Safe',
+                 text: 'These queens are safe and head to Untucked.',
+                 groups: [{ items: ev.safe.queens.map(function (id) { return item(id, 'SAFE', 'safe'); }) }] });
+    }
+
+    out.push({ id: 'critiques', title: 'The critiques',
+               text: 'The judges give their critiques.',
+               groups: [{ label: 'Tops', items: plain(ev.critiques.tops) },
+                        { label: 'Bottoms', items: plain(ev.critiques.bottoms) }] });
+
+    out.push({ id: 'top', kicker: 'The top queens', together: true,
+               groups: [{ size: 'mid', items: r.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
+                          text: r.top2.map(name).join(' and ') + ', you are the top two of the week. You will lip sync for your legacy!' }] });
+
+    out.push({ id: 'bottom', kicker: 'The bottom queens', together: true,
+               groups: [{ size: 'compact',
+                          items: r.btm2.map(function (id) { return item(id, 'BTM' + r.btm2.length, 'btm'); }),
+                          text: r.btm2.map(name).join(', ') + ', I\u2019m sorry my dear, but you are up for elimination. ' +
+                                'The winner of the lip sync will decide who goes home.' }] });
+
+    const song = ev.lipsync.song;
+    out.push({ id: 'lipsync', title: 'Lip sync for your legacy',
+               text: song ? '\u266A ' + song.title + ' \u2013 ' + song.artist + ' \u266A' : '',
+               groups: [{ big: true, vs: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    out.push({ id: 'winner', kicker: 'The winner of the lip sync', together: true,
+               groups: [{ size: 'mid', items: [item(winner, 'WIN', 'win', 'winner')],
+                          text: name(winner) + ', condragulations, you are the winner of this week\u2019s challenge!! ' +
+                                'You have the power to chop one of the bottom queens.' },
+                        { size: 'compact', items: [item(loser, 'TOP 2', 'top2')],
+                          text: name(loser) + ', you were fierce tonight. You are safe.' }] });
+
+    out.push({ id: 'chop', title: 'The chop',
+               text: name(winner) + ', who will you chop?',
+               groups: [{ big: true, items: ch.bottoms.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    out.push({ id: 'sashay', title: 'Sashay away',
+               text: name(winner) + ' has chosen to chop ' + name(ch.chopped) + '. ' + name(ch.chopped) + ', sashay away.',
+               groups: [{ big: true, items: [item(ch.chopped, 'ELIMINATED', 'elim', 'out')] }] });
+
+    out.push({ id: 'track', title: 'Track record', track: true });
+    return out;
+  }
+
   function buildScenes(log) {
     const ev = {};
     log.events.forEach(function (e) { ev[e.type] = e; });
     if (log.talentShow) return buildTalentScenes(log, ev);
+    if (log.legacy) return buildLegacyScenes(log, ev);
     if (log.premiere) return buildPremiereScenes(log, ev);
     const out = [];
 
