@@ -314,6 +314,10 @@ const Episode = (function () {
     out.push({ id: 'chop-reveal', title: 'The chop',
                chop: { winner: winner, bottoms: ch.bottoms, reveal: ch.chopped } });
 
+    out.push({ id: 'sashay', title: 'Sashay away',
+               text: name(ch.chopped) + ', sashay away.',
+               groups: [{ big: true, items: [item(ch.chopped, 'ELIMINATED', 'elim', 'out')] }] });
+
     out.push({ id: 'track', title: 'Track record', track: true });
     return out;
   }
@@ -476,28 +480,15 @@ const Episode = (function () {
     }
     box.appendChild(slot);
 
-    const row = make('div', 'scene-row is-big chop-bottoms');
-    let chopCard = null;
+    const row = make('div', 'chop-bottoms');
     chop.bottoms.forEach(function (id, i) {
       const wrap = make('div', 'scene-item');
       wrap.style.setProperty('--d', (reveal ? 0 : 0.5 + i * STEP).toFixed(2) + 's');
-      const card = makeQueenCard(id, 'glow');
-      if (id === reveal) chopCard = card;
-      wrap.appendChild(card);
+      wrap.appendChild(makeQueenCard(id, 'glow'));
       row.appendChild(wrap);
     });
     box.appendChild(row);
 
-    if (reveal) {
-      box.appendChild(make('p', 'chop-name', queenData(reveal).name));
-      const late = make('p', 'scene-text scene-late', queenData(reveal).name + ', sashay away.');
-      late.style.setProperty('--d', '2.6s');
-      box.appendChild(late);
-      // Grey the chopped queen out once the lipstick has landed
-      window.setTimeout(function () {
-        if (chopCard && chopCard.isConnected) { chopCard.classList.remove('is-glow'); chopCard.classList.add('is-out'); }
-      }, 2000);
-    }
     stageBox.appendChild(box);
   }
 
