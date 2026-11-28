@@ -15,9 +15,33 @@
 .screen--home {
   position: relative;
   justify-content: center;
+  /* a bit less room on the left, more on the right: everything sits slightly further left */
+  padding-left: clamp(18px, 3vw, 48px);
+  padding-right: clamp(18px, 6vw, 110px);
+}
+
+/* Soft, relaxed glow behind the logo (plus a faint one bottom left) for depth.
+   It breathes very slowly. Change the rgba() numbers to make it stronger or fainter. */
+.screen--home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 52% 62% at 66% 48%, rgba(255, 255, 255, 0.8) 0%, rgba(140, 230, 185, 0.34) 40%, rgba(140, 230, 185, 0) 74%),
+    radial-gradient(ellipse 40% 46% at 10% 92%, rgba(76, 189, 136, 0.22) 0%, rgba(76, 189, 136, 0) 70%);
+  animation: glow-breathe 11s ease-in-out infinite alternate;
+}
+
+@keyframes glow-breathe {
+  from { opacity: 0.8;  transform: scale(1); }
+  to   { opacity: 1;    transform: scale(1.05); }
 }
 
 .home-layout {
+  position: relative;
+  z-index: 1;
   width: min(100%, 1400px);
   display: grid;
   grid-template-columns: minmax(360px, 620px) minmax(0, 1fr);   /* menu | logo */
@@ -163,6 +187,7 @@
 /* ---------- 4. Online indicator (top right) ---------- */
 .status {
   position: absolute;
+  z-index: 1;
   top: 14px;
   right: clamp(14px, 3vw, 32px);
   display: inline-flex;
@@ -199,6 +224,6 @@
 
 /* ---------- 5. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .dot, .status-dot { animation: none; }
+  .dot, .status-dot, .screen--home::before { animation: none; }
   .btn.start .arrow { transition: none; }
 }
