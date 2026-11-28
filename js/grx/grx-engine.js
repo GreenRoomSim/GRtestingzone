@@ -50,7 +50,25 @@ const GRX = (function () {
     return { id: id, episodes: table[id].episodes, tops: table[id].tops };
   }
 
+  // Talent Show extra: null (off), 'premiere' (episodes 1-2) or 'mid' (around 10-9 left)
+  function talentModeFor(castSize, settings) {
+    const X = C.talentShowExtra;
+    const on = settings && X && (settings.extras || []).indexOf(X.id) !== -1;
+    if (!on || castSize < X.minCast) return null;
+    if (castSize <= X.premiereMaxCast) return 'premiere';
+    return Math.random() < X.premiereChance ? 'premiere' : 'mid';
+  }
+
   function newSeason(queens, settings) {
+    const season = seasonState(queens, settings);
+    // A Talent Show premiere replaces the Premiere setting (no special premiere)
+    season.premiere = season.talentMode === 'premiere'
+      ? { id: 'regular', episodes: 0, tops: 0 }
+      : premiereFor(queens.length, settings);
+    return season;
+  }
+
+  function seasonState(queens, settings) {
     return {
       rng: Math.random,
       settings: settings || {},
@@ -60,7 +78,8 @@ const GRX = (function () {
                  placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null, finaleCut: false, lostRound1: false };
       }),
       challengeHistory: [],
-      premiere: premiereFor(queens.length, settings),   // { id, episodes, tops }
+      talentMode: talentModeFor(queens.length, settings), // null / 'premiere' / 'mid' (Talent Show extra)
+      premiere: null,                       // set just below (a Talent Show premiere replaces it)
       splitGroups: null,                    // split premiere: [[ids ep 1], [ids ep 2]]
       btm2Cap: btm2CapFor(queens.length),   // BTM2 appearances that get a queen sent home
       lastWinner: null,                     // id of last episode's winner
@@ -222,8 +241,9 @@ const GRX = (function () {
   // 0 = not a talent show episode, 1 = part 1 (starts now), 2 = part 2 (due now)
   function talentShowPhase(state, everyone, isPremiere) {
     const T = C.talentShow;
-    if (!T || isPremiere) return 0;
+    if (!T || isPremiere || !state.talentMode) return 0;     // only with the Talent Show extra
     if (state.talentShow) return state.talentShow.done ? 0 : 2;
+    if (state.talentMode === 'premiere') return state.episode === 1 ? 1 : 0;
     if (state.queens.length < T.minCast) return 0;
     if (everyone.length <= T.maxLeft && everyone.length >= T.minLeft) return 1;
     return 0;
@@ -362,7 +382,8 @@ const GRX = (function () {
     // Queens' entrance: episode 1 (everyone, or the first half in a split),
     // and episode 2 of a split premiere (the second half)
     if (state.episode === 1 || (isPremiere && state.premiere.id === 'split')) {
-      events.push({ type: 'entrance', queens: ids(active) });
+      // (a Talent Show premiere: everyone enters, even though half perform)
+      events.push({ type: 'entrance', queens: ids(ts && state.episode === 1 ? everyone : active) });
     }
 
     // Challenge + runway

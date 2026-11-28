@@ -125,9 +125,25 @@ const GRX_CONFIG = {
   talentShow: {
     minCast: 12,
     maxLeft: 10,
-    minLeft: 8,
+    minLeft: 9,
     doubleShantayChance: 0.0005,
     doubleSashayChance: 0.0001
+  },
+
+  /* TALENT SHOW EXTRA (Extras on the setup screen, off by default). The
+     Talent Show only happens when the extra is switched on:
+       10-11 queens: always a PREMIERE Talent Show (episodes 1 and 2, nobody
+                     goes home in episode 1, one queen in episode 2).
+       12+ queens:   premiereChance = chance it is a premiere Talent Show,
+                     otherwise it is the mid-season one above (maxLeft/minLeft).
+     A Talent Show premiere replaces the Premiere setting. It works exactly
+     like the mid-season one (top 2 lip sync, BTM1 in week one, BTM2 lip sync
+     in week two). Fewer than minCast queens can't use the extra at all. */
+  talentShowExtra: {
+    id: 'talentshow',        // id of the extra in data/options.js
+    minCast: 10,
+    premiereMaxCast: 11,     // 10-11 queens: always the premiere
+    premiereChance: 0.5      // 12+ queens
   },
 
   /* Season stages, as how far through the regular season it is:

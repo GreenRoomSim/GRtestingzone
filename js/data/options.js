@@ -85,7 +85,8 @@ const SETUP_OPTIONS = [
     help: 'Optional extras. Everything here is off by default.',
     defaults: [],
     choices: [
-      { id: 'riggory', label: 'User Riggory', note: 'Choose the outcome of each episode if you want to' }
+      { id: 'riggory',    label: 'User Riggory', note: 'Choose the outcome of each episode if you want to' },
+      { id: 'talentshow', label: 'Talent Show',  note: 'Needs 10+ queens. 10-11 queens: premiere. 12+: premiere or around 10-9 queens left' }
     ]
   }
 

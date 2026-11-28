@@ -144,6 +144,13 @@ const Episode = (function () {
     const performing = t.performing, raters = t.raters;
     const winner = ev.lipsync.winner, loser = ev.lipsync.loser;
 
+    // Talent Show premiere: the queens enter first
+    if (ev.entrance) {
+      out.push({ id: 'entrance', title: 'Welcome to the Werk Room',
+                 text: 'The queens enter one by one.',
+                 groups: [{ items: plain(ev.entrance.queens) }] });
+    }
+
     out.push({ id: 'challenge', title: 'This week\u2019s maxi challenge', big: 'Talent Show',
                text: part === 1 ? 'This is a two part challenge! Half of the queens perform this week, and the other half perform next week.'
                                 : 'Part two of the Talent Show! The second group performs tonight.',
@@ -1003,6 +1010,13 @@ const Episode = (function () {
       if (rule && rule.minCast && cast < rule.minCast) {
         showError('You must have at least ' + rule.minCast + ' queens in your cast to use the Split Premiere. ' +
                   'You have ' + cast + '. Add more queens or pick a different premiere.');
+        return;
+      }
+      // The Talent Show extra needs a minimum cast too
+      const X = GRX_CONFIG.talentShowExtra;
+      if (X && (settings.extras || []).indexOf(X.id) !== -1 && cast < X.minCast) {
+        showError('You must have at least ' + X.minCast + ' queens in your cast to use the Talent Show extra. ' +
+                  'You have ' + cast + '. Add more queens or switch the Talent Show off.');
         return;
       }
       hideError();
