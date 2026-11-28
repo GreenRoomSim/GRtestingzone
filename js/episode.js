@@ -305,13 +305,14 @@ const Episode = (function () {
                         { size: 'compact', items: [item(loser, 'TOP 2', 'top2')],
                           text: name(loser) + ', you were fierce tonight. You are safe.' }] });
 
+    // The chop: the winner on top, the bottoms below. Continue, and a lipstick
+    // with the chopped queen's name slides out from under the winner's card.
     out.push({ id: 'chop', title: 'The chop',
-               text: name(winner) + ', who will you chop?',
-               groups: [{ big: true, items: ch.bottoms.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+               text: name(winner) + ', who do you want to give the chop?',
+               chop: { winner: winner, bottoms: ch.bottoms } });
 
-    out.push({ id: 'sashay', title: 'Sashay away',
-               text: name(winner) + ' has chosen to chop ' + name(ch.chopped) + '. ' + name(ch.chopped) + ', sashay away.',
-               groups: [{ big: true, items: [item(ch.chopped, 'ELIMINATED', 'elim', 'out')] }] });
+    out.push({ id: 'chop-reveal', title: 'The chop',
+               chop: { winner: winner, bottoms: ch.bottoms, reveal: ch.chopped } });
 
     out.push({ id: 'track', title: 'Track record', track: true });
     return out;
@@ -452,12 +453,62 @@ const Episode = (function () {
     return card;
   }
 
+  // The chop screen (Lip Sync Legacy). chop = { winner, bottoms, reveal }.
+  // reveal = the chopped queen's id: a lipstick slides out and her name appears.
+  function drawChop(chop) {
+    const box = make('div', 'chop-stage');
+    const reveal = chop.reveal || null;
+
+    const top = make('div', 'scene-item chop-winner');
+    top.style.setProperty('--d', '0.1s');
+    top.style.setProperty('--tag-gap', '0s');
+    top.appendChild(makeQueenCard(chop.winner, 'winner'));
+    top.appendChild(make('span', 'scene-tag win', 'WIN'));
+    box.appendChild(top);
+
+    // The slot under the winner's card. The lipstick starts hidden above it.
+    const slot = make('div', 'chop-slot' + (reveal ? ' has-lipstick' : ''));
+    if (reveal) {
+      const stick = make('div', 'lipstick');
+      stick.appendChild(make('span', 'lipstick-gold'));
+      stick.appendChild(make('span', 'lipstick-name', queenData(reveal).name));
+      slot.appendChild(stick);
+    }
+    box.appendChild(slot);
+
+    const row = make('div', 'scene-row is-big chop-bottoms');
+    let chopCard = null;
+    chop.bottoms.forEach(function (id, i) {
+      const wrap = make('div', 'scene-item');
+      wrap.style.setProperty('--d', (reveal ? 0 : 0.5 + i * STEP).toFixed(2) + 's');
+      const card = makeQueenCard(id, 'glow');
+      if (id === reveal) chopCard = card;
+      wrap.appendChild(card);
+      row.appendChild(wrap);
+    });
+    box.appendChild(row);
+
+    if (reveal) {
+      box.appendChild(make('p', 'chop-name', queenData(reveal).name));
+      const late = make('p', 'scene-text scene-late', queenData(reveal).name + ', sashay away.');
+      late.style.setProperty('--d', '2.6s');
+      box.appendChild(late);
+      // Grey the chopped queen out once the lipstick has landed
+      window.setTimeout(function () {
+        if (chopCard && chopCard.isConnected) { chopCard.classList.remove('is-glow'); chopCard.classList.add('is-out'); }
+      }, 2000);
+    }
+    stageBox.appendChild(box);
+  }
+
   function drawScene(scene) {
     stageBox.textContent = '';
     if (scene.kicker) stageBox.appendChild(make('p', 'scene-kicker', scene.kicker));
     if (scene.title)  stageBox.appendChild(make('h3', 'scene-title', scene.title));
     if (scene.big)    stageBox.appendChild(make('p', 'scene-big', scene.big));
     if (scene.text)   stageBox.appendChild(make('p', 'scene-text', scene.text));
+
+    if (scene.chop) drawChop(scene.chop);
 
     // Performance categories: one row per category, each row appears as one piece
     if (scene.cats) {
