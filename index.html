@@ -23,7 +23,7 @@
 <body>
 
   <!-- Version label: stuck to the top left of every screen. Change the text here when you release a new version. -->
-  <div class="version" id="app-version">v0.1.0 BETA</div>
+  <div class="version" id="app-version">v0.1.0</div>
 
   <!-- ==========================================================
        SCREENS
@@ -167,7 +167,9 @@
   </section>
 
 
-  <!-- ============ CHANGELOG ============ -->
+  <!-- ============ CHANGELOG ============
+       To add a new version: copy the whole <article class="release"> block
+       and paste it ABOVE the previous one. -->
   <section class="screen screen--page" data-screen="changelog" aria-labelledby="title-changelog">
     <div class="page-head">
       <div class="page-header">
@@ -175,8 +177,23 @@
         <h2 class="page-title" id="title-changelog" tabindex="-1" data-autofocus>Changelog</h2>
       </div>
     </div>
-    <div class="placeholder-card">
-      <p>Version history will show up here.</p>
+
+    <div class="info-card">
+      <article class="release">
+        <header class="release-head">
+          <h3 class="release-version">v0.1.0 Release</h3>
+          <span class="release-date">Dec 2nd 2026</span>
+        </header>
+        <ul class="release-list">
+          <li>First public release of GreenRoom Simulator.</li>
+          <li>Build your own cast from the queen database, or pick a predefined season.</li>
+          <li>Season settings: Regular, Top 2 and Split premieres, plus Top 3, Top 4 and Lip Sync For The Crown finales.</li>
+          <li>Full season simulation: challenges, runway, judging, lip syncs and eliminations.</li>
+          <li>Track record table that updates every episode.</li>
+          <li>User Riggory: choose the outcome of episodes yourself.</li>
+          <li>Suggest a feature / report a bug form.</li>
+        </ul>
+      </article>
     </div>
   </section>
 
@@ -238,8 +255,28 @@
         <h2 class="page-title" id="title-credits" tabindex="-1" data-autofocus>Credits</h2>
       </div>
     </div>
-    <div class="placeholder-card">
-      <p>Credits will go here.</p>
+
+    <div class="info-card">
+      <section class="credit-block">
+        <h3 class="credit-title">Created by</h3>
+        <p>YOUR NAME HERE</p>
+      </section>
+
+      <section class="credit-block">
+        <h3 class="credit-title">Built with</h3>
+        <p>Plain HTML, CSS and JavaScript. Fonts: Outfit and Manrope via Google Fonts.</p>
+        <p>Developed with assistance from Claude, an AI assistant made by Anthropic.</p>
+      </section>
+
+      <section class="credit-block">
+        <h3 class="credit-title">Thanks</h3>
+        <p>Everyone who tested the simulator and sent suggestions.</p>
+      </section>
+
+      <section class="credit-block">
+        <h3 class="credit-title">Disclaimer</h3>
+        <p>GreenRoom Simulator is an unofficial fan project. It is not affiliated with or endorsed by World of Wonder, RuPaul's Drag Race or any related network. All names and images belong to their respective owners.</p>
+      </section>
     </div>
   </section>
 
