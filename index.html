@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/home.css">     <!-- home screen -->
   <link rel="stylesheet" href="css/pages.css">    <!-- page headers + placeholder pages -->
   <link rel="stylesheet" href="css/setup.css">    <!-- setup screen (settings + cast) -->
+  <link rel="stylesheet" href="css/predefined.css"> <!-- cast tabs + predefined casts -->
   <link rel="stylesheet" href="css/episode.css">  <!-- basic episode screen (GRX test UI) -->
   <link rel="stylesheet" href="css/track-record.css"> <!-- track record table -->
   <link rel="stylesheet" href="css/riggory.css">  <!-- riggory popup + button -->
@@ -83,18 +84,32 @@
 
       <!-- RIGHT: search, results, then your cast underneath -->
       <div class="cast-panel">
-        <h3 class="panel-title">Find your cast</h3>
-
-        <div class="cast-toolbar">
-          <input class="search" id="queen-search" type="search" placeholder="Search queens" aria-label="Search queens" autocomplete="off">
-          <button class="btn random" id="random-queen">Random queen</button>
+        <!-- Two tabs. "Your cast" (below) stays whichever tab is open. -->
+        <div class="cast-tabs" role="tablist" aria-label="How to pick your cast">
+          <button class="cast-tab" id="tab-btn-find" role="tab" data-tab="find" aria-selected="true" aria-controls="tab-find">Find your cast</button>
+          <button class="cast-tab" id="tab-btn-predefined" role="tab" data-tab="predefined" aria-selected="false" aria-controls="tab-predefined">Predefined casts</button>
         </div>
-        <p class="results-count" id="results-count" aria-live="polite"></p>
 
-        <!-- Results: a message until you search, then the top 10 queens (js/cast.js) -->
-        <div class="results">
-          <p class="empty-state" id="grid-message" hidden></p>
-          <div class="queen-grid" id="queen-grid"></div>
+        <!-- TAB 1: search + random + results -->
+        <div class="cast-tab-panel" id="tab-find" role="tabpanel" aria-labelledby="tab-btn-find">
+          <div class="cast-toolbar">
+            <input class="search" id="queen-search" type="search" placeholder="Search queens" aria-label="Search queens" autocomplete="off">
+            <button class="btn random" id="random-queen">Random queen</button>
+          </div>
+          <p class="results-count" id="results-count" aria-live="polite"></p>
+
+          <!-- Results: a message until you search, then the top 10 queens (js/cast.js) -->
+          <div class="results">
+            <p class="empty-state" id="grid-message" hidden></p>
+            <div class="queen-grid" id="queen-grid"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: real seasons, by franchise (built by js/cast.js from the "seasons" in queens.json) -->
+        <div class="cast-tab-panel" id="tab-predefined" role="tabpanel" aria-labelledby="tab-btn-predefined" hidden>
+          <div class="predef-franchises" id="predef-franchises" role="group" aria-label="Franchise"></div>
+          <p class="predef-note" id="predef-note" aria-live="polite"></p>
+          <div class="predef-seasons" id="predef-seasons"></div>
         </div>
 
         <!-- Your cast: a card for every queen picked (built by js/cast.js) -->
