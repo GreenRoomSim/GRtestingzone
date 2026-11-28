@@ -158,15 +158,16 @@ const GRX_CONFIG = {
      Forced for now: Regular premiere, Top 3 finale, no extras. */
   legacy: {
     minCast: 10,     // Lip Sync Legacy needs at least this many queens (checked on the setup screen)
-    /* high: up to this many HIGH queens (a random 1 to this number, if there is room).
+    maxInTopAndBottom: 6,   // HARD CAP: top 2 + HIGHs + LOW + bottom never go above this (3 up top, 3 at the bottom)
+    /* high: how many HIGH queens at most (1 = a HIGH most weeks, if there is room).
        lowChance: chance of one LOW queen (safe, not up for the chop). A LOW only
        happens with a BTM2: in a BTM3 every queen in the bottom is up for the chop.
        BTM3s are rare early, more common mid season, and certain near the end. */
     shapes: [
-      { minQueens: 10, bottom: 2, bottom3Chance: 0.1,  high: 2, lowChance: 0.8 },
-      { minQueens: 8,  bottom: 2, bottom3Chance: 0.35, high: 2, lowChance: 0.7 },
-      { minQueens: 7,  bottom: 2, bottom3Chance: 0.6,  high: 1, lowChance: 0.6 },
-      { minQueens: 5,  bottom: 3, high: 1 },
+      { minQueens: 10, bottom: 2,                      high: 1, lowChance: 0.8 },   // early: always a BTM2
+      { minQueens: 8,  bottom: 2, bottom3Chance: 0.2,  high: 1, lowChance: 0.7 },   // middle: the odd BTM3
+      { minQueens: 7,  bottom: 2, bottom3Chance: 0.5,  high: 1, lowChance: 0.6 },
+      { minQueens: 5,  bottom: 3, high: 1 },                                          // end: always a BTM3
       { minQueens: 4,  bottom: 2 }
     ],
     surpriseChance: 0.25

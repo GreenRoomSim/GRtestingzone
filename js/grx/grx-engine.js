@@ -360,9 +360,11 @@ const GRX = (function () {
     bottom = Math.min(bottom, n - 2);
 
     // Order, best to worst: top 2, HIGHs, SAFE, LOW, bottom. A LOW only comes with a BTM2.
-    const hasLow = bottom === 2 && row.lowChance && n - 2 - bottom >= 1 && state.rng() < row.lowChance;
+    const hasLow = bottom === 2 && row.lowChance && n - 2 - bottom >= 1 && (L.maxInTopAndBottom || 6) >= 5 && state.rng() < row.lowChance;
     const room = n - 2 - bottom - (hasLow ? 1 : 0);
-    const highCount = row.high ? Math.min(room, 1 + Math.floor(state.rng() * row.high)) : 0;
+    // Never more than maxInTopAndBottom queens in the top 2 + HIGHs + LOW + bottom
+    const cap = (L.maxInTopAndBottom || 6) - 2 - bottom - (hasLow ? 1 : 0);
+    const highCount = row.high ? Math.max(0, Math.min(room, cap, 1 + Math.floor(state.rng() * row.high))) : 0;
 
     const pair = ranked.slice(0, 2);
     const highs = ranked.slice(2, 2 + highCount);
