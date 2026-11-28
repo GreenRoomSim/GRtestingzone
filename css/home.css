@@ -20,9 +20,9 @@
 .home-layout {
   width: min(100%, 1400px);
   display: grid;
-  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);   /* menu | logo */
+  grid-template-columns: minmax(340px, 540px) minmax(0, 1fr);   /* menu | logo */
   align-items: center;
-  gap: clamp(32px, 6vw, 100px);
+  gap: clamp(32px, 5vw, 80px);
 }
 
 .menu  { grid-column: 1; grid-row: 1; }
@@ -33,7 +33,7 @@
   .home-layout { grid-template-columns: 1fr; gap: clamp(28px, 6vh, 56px); }
   .brand, .menu { grid-column: 1; }
   .brand { grid-row: 1; }
-  .menu  { grid-row: 2; width: min(100%, 460px); margin: 0 auto; }
+  .menu  { grid-row: 2; width: min(100%, 520px); margin: 0 auto; }
 }
 
 
@@ -47,7 +47,7 @@
   margin: 0;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: clamp(3.2rem, 10.5vw, 12rem);   /* min, scales with screen, max */
+  font-size: clamp(3.2rem, 9vw, 11rem);   /* min, scales with screen, max */
   line-height: 0.9;
   letter-spacing: -0.045em;
   color: var(--ink);
@@ -100,23 +100,35 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(22px, 3.6vh, 34px);
+  gap: clamp(26px, 4.4vh, 42px);
 }
 
-/* The big green Start button, with an arrow on the right */
+/* The big Start button (normal button green), with an arrow on the right.
+   On hover it only gets a little lighter. */
 .btn.start {
-  --edge: var(--accent-edge);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: clamp(22px, 4vh, 40px) clamp(24px, 3vw, 38px);
-  font-size: clamp(2rem, 3.8vw, 3.4rem);
+  padding: clamp(34px, 6.4vh, 64px) clamp(28px, 3.4vw, 46px);
+  font-size: clamp(2.6rem, 4.8vw, 4.6rem);
   letter-spacing: 0.02em;
   text-align: left;
-  border-radius: 26px;
-  color: var(--ink-deep);
-  background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent) 55%);
+  border-radius: 30px;
+}
+
+.btn.start:not(:disabled):hover,
+.btn.start:not(:disabled):focus-visible {
+  --edge: var(--ink-edge);
+  --lift: 8px;
+  color: var(--pale);
+  background: linear-gradient(180deg, #3f9673 0%, #2e7b5d 55%);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.btn.start:not(:disabled):active {
+  --lift: 2px;
+  transform: translateY(5px) scale(1.01);
 }
 
 .btn.start .arrow {
@@ -126,25 +138,23 @@
   transition: transform 0.14s ease;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .btn.start:not(:disabled):hover .arrow { transform: translateX(8px); }
-}
+.btn.start:not(:disabled):hover .arrow,
 .btn.start:not(:disabled):focus-visible .arrow { transform: translateX(8px); }
 
 /* Changelog / Suggest / Credits: quieter, whitish buttons stacked underneath */
 .minor-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .btn.minor {
   --edge: rgba(40, 106, 82, 0.3);
-  --lift: 5px;
-  padding: 15px 22px;
-  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  --lift: 6px;
+  padding: clamp(20px, 3.4vh, 30px) 28px;
+  font-size: clamp(1.25rem, 2.1vw, 1.8rem);
   text-align: left;
-  border-radius: 16px;
+  border-radius: 20px;
   color: var(--ink);
   background: linear-gradient(180deg, #ffffff 0%, #eef6f1 100%);
 }
