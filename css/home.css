@@ -1,10 +1,10 @@
 /* ==========================================================================
    GreenRoom Simulator - css/home.css
-   The home screen: menu buttons on the left, big logo on the right, and the
-   ONLINE indicator in the top right.
+   The home screen: buttons on the left, big logo on the right (with a 3D glow
+   behind it), and the ONLINE indicator in the top right.
    Sections:
      1. Layout (two columns, stacks on small screens)
-     2. Logo (wordmark)
+     2. Logo (wordmark + "simulator") and its glow
      3. Menu buttons
      4. Online indicator
      5. Accessibility (reduced motion)
@@ -15,59 +15,55 @@
 .screen--home {
   position: relative;
   justify-content: center;
-  padding-left: clamp(18px, 4vw, 64px);
-  padding-right: clamp(18px, 4vw, 64px);
-  overflow: hidden;              /* the glow never makes the page scroll */
+  overflow: hidden;                          /* the glow can never make the page scroll */
+  padding-left: clamp(24px, 6vw, 110px);     /* buttons sit well in from the left edge */
+  padding-right: clamp(24px, 4vw, 70px);
 }
 
-/* Soft, relaxed glow with some depth: a bright core and a wider mint halo
-   behind the logo, a soft "floor" shadow under it, and a faint glow bottom
-   left. It breathes very slowly. Change the rgba() numbers to make it
-   stronger or fainter. */
+/* A very faint, still glow in the bottom left corner */
 .screen--home::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 22% 28% at 74% 44%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%),
-    radial-gradient(ellipse 40% 50% at 74% 46%, rgba(190, 245, 215, 0.7) 0%, rgba(140, 230, 185, 0) 100%),
-    radial-gradient(ellipse 58% 70% at 74% 48%, rgba(140, 230, 185, 0.38) 0%, rgba(140, 230, 185, 0) 100%),
-    radial-gradient(ellipse 34% 9% at 74% 80%, rgba(27, 77, 59, 0.22) 0%, rgba(27, 77, 59, 0) 100%),
-    radial-gradient(ellipse 40% 46% at 8% 94%, rgba(76, 189, 136, 0.22) 0%, rgba(76, 189, 136, 0) 100%);
-  animation: glow-breathe 11s ease-in-out infinite alternate;
-}
-
-@keyframes glow-breathe {
-  from { opacity: 0.8;  transform: scale(1); }
-  to   { opacity: 1;    transform: scale(1.05); }
+  background: radial-gradient(ellipse 40% 46% at 6% 100%, rgba(76, 189, 136, 0.2) 0%, rgba(76, 189, 136, 0) 100%);
 }
 
 .home-layout {
   position: relative;
   z-index: 1;
-  width: min(100%, 1400px);
+  width: min(100%, 1500px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);   /* menu (left half) | logo (right half) */
+  grid-template-columns: minmax(320px, 540px) minmax(0, 1fr);   /* buttons | logo (gets the rest) */
   align-items: center;
   gap: clamp(32px, 4vw, 64px);
 }
 
-.menu  { grid-column: 1; grid-row: 1; justify-self: center; }
-.brand { grid-column: 2; grid-row: 1; }
+.menu  { grid-column: 1; grid-row: 1; }
+.brand { grid-column: 2; grid-row: 1; justify-self: center; }
 
-/* Phones and small tablets: logo on top, menu underneath */
-@media (max-width: 860px) {
+/* Phones and small tablets: logo on top, buttons underneath */
+@media (max-width: 960px) {
+  .screen--home { padding-left: clamp(18px, 5vw, 48px); padding-right: clamp(18px, 5vw, 48px); }
   .home-layout { grid-template-columns: 1fr; gap: clamp(28px, 6vh, 56px); }
   .brand, .menu { grid-column: 1; }
   .brand { grid-row: 1; }
-  .menu  { grid-row: 2; width: min(100%, 580px); margin: 0 auto; }
+  .menu  { grid-row: 2; width: min(100%, 520px); margin: 0 auto; }
 }
 
 
-/* ---------- 2. Logo (wordmark) ---------- */
+/* ---------- 2. Logo and its glow ---------- */
+/* The wordmark and "simulator" are ONE group: the group is only as wide as the
+   wordmark, and "simulator" is centred directly underneath it. */
 .brand {
+  position: relative;
+  isolation: isolate;                        /* keeps the glow behind the text, above the page */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
   user-select: none;
   text-align: center;
 }
@@ -76,7 +72,7 @@
   margin: 0;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: clamp(3.2rem, 8.4vw, 10.5rem);   /* min, scales with screen, max */
+  font-size: clamp(3rem, 8.6vw, 11rem);      /* min, scales with screen, max */
   line-height: 0.9;
   letter-spacing: -0.045em;
   color: var(--ink);
@@ -103,14 +99,14 @@
 
 /* "simulator" underneath, with a line either side */
 .tag {
-  margin: clamp(14px, 2.4vh, 28px) 0 0;
+  margin: clamp(12px, 2vh, 24px) 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  padding-left: 0.32em;          /* balances the letter-spacing */
+  gap: 16px;
+  padding-left: 0.32em;          /* balances the letter-spacing so it is truly centred */
   font-weight: 700;
-  font-size: clamp(1rem, 2.1vw, 1.9rem);
+  font-size: clamp(0.9rem, 1.8vw, 1.7rem);
   letter-spacing: 0.32em;
   color: var(--ink);
 }
@@ -118,16 +114,45 @@
 .tag::before,
 .tag::after {
   content: "";
-  width: clamp(36px, 8vw, 120px);
+  width: clamp(28px, 5vw, 90px);
   height: 3px;
   border-radius: 2px;
   background: var(--accent);
 }
 
+/* The 3D glow. It is centred on the logo group, so it always follows the logo.
+   Layers, top to bottom: bright core, soft ring, mint halo, wide glow, then the
+   "floor": a mint glow and a dark soft shadow under the logo, like a lit stage.
+   Change the rgba() numbers to make it stronger or fainter. */
+.brand::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 170%;
+  aspect-ratio: 1.4;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 26% 30% at 50% 44%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 40% 42% at 50% 46%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.5) 80%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 44% 48% at 50% 46%, rgba(190, 245, 215, 0.8) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 70% 72% at 50% 50%, rgba(140, 230, 185, 0.42) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 40% 9% at 50% 76%, rgba(76, 189, 136, 0.55) 0%, rgba(76, 189, 136, 0) 100%),
+    radial-gradient(ellipse 32% 5% at 50% 77%, rgba(27, 77, 59, 0.32) 0%, rgba(27, 77, 59, 0) 100%);
+  animation: glow-breathe 11s ease-in-out infinite alternate;
+}
+
+@keyframes glow-breathe {
+  from { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 1;   transform: translate(-50%, -50%) scale(1.05); }
+}
+
 
 /* ---------- 3. Menu buttons ---------- */
 .menu {
-  width: min(100%, 620px);
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: clamp(26px, 4.4vh, 42px);
@@ -141,7 +166,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: clamp(20px, 3.6vh, 36px) clamp(28px, 3.4vw, 46px);
-  font-size: clamp(2.4rem, 4.4vw, 4.2rem);
+  font-size: clamp(2.4rem, 4.2vw, 4rem);
   letter-spacing: 0.02em;
   text-align: left;
   border-radius: 30px;
@@ -182,7 +207,7 @@
   --edge: rgba(40, 106, 82, 0.3);
   --lift: 6px;
   padding: clamp(20px, 3.4vh, 30px) 28px;
-  font-size: clamp(1.25rem, 2.1vw, 1.8rem);
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
   text-align: left;
   border-radius: 20px;
   color: var(--ink);
@@ -193,7 +218,7 @@
 /* ---------- 4. Online indicator (top right) ---------- */
 .status {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   top: 14px;
   right: clamp(14px, 3vw, 32px);
   display: inline-flex;
@@ -230,6 +255,6 @@
 
 /* ---------- 5. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .dot, .status-dot, .screen--home::before { animation: none; }
+  .dot, .status-dot, .brand::before { animation: none; }
   .btn.start .arrow { transition: none; }
 }
