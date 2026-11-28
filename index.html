@@ -181,16 +181,51 @@
   </section>
 
 
-  <!-- ============ SUGGEST A FEATURE ============ -->
-  <section class="screen screen--page" data-screen="suggest" aria-labelledby="title-suggest">
+  <!-- ============ SUGGEST A FEATURE ============
+       Built by js/suggest.js: the answers are sent to a Google Form (the
+       form address and question id are at the top of that file). -->
+  <section class="screen screen--page screen--suggest" data-screen="suggest" aria-labelledby="title-suggest">
     <div class="page-head">
       <div class="page-header">
         <button class="btn back" data-goto="home">Back</button>
         <h2 class="page-title" id="title-suggest" tabindex="-1" data-autofocus>Suggest a feature</h2>
       </div>
+      <p class="page-sub">Got an idea, or found a bug? Tell us below.</p>
     </div>
-    <div class="placeholder-card">
-      <p>A way to send feature ideas will go here.</p>
+
+    <form class="suggest-card" id="suggest-form" novalidate>
+      <div class="suggest-field">
+        <span class="suggest-label" id="suggest-type-label">What is it?</span>
+        <div class="options" role="radiogroup" aria-labelledby="suggest-type-label">
+          <label class="opt"><input type="radio" name="type" value="Suggestion" checked><span class="opt-box"><span class="opt-text"><span class="opt-label">Suggestion</span></span></span></label>
+          <label class="opt"><input type="radio" name="type" value="Bug report"><span class="opt-box"><span class="opt-text"><span class="opt-label">Bug report</span></span></span></label>
+          <label class="opt"><input type="radio" name="type" value="Other"><span class="opt-box"><span class="opt-text"><span class="opt-label">Other</span></span></span></label>
+        </div>
+      </div>
+
+      <div class="suggest-field">
+        <label class="suggest-label" for="suggest-text">Your message</label>
+        <textarea class="search suggest-text" id="suggest-text" rows="6" maxlength="1000" placeholder="Describe your idea or the bug. The more detail, the better."></textarea>
+        <p class="suggest-count" id="suggest-count" aria-hidden="true">0 / 1000</p>
+      </div>
+
+      <!-- Spam trap: people never see this, bots fill it in -->
+      <div class="sr-only" aria-hidden="true">
+        <label>Leave this empty <input type="text" id="suggest-trap" tabindex="-1" autocomplete="off"></label>
+      </div>
+
+      <p class="suggest-status" id="suggest-status" role="status" aria-live="polite"></p>
+      <div class="suggest-actions">
+        <button class="btn small suggest-send" id="suggest-send" type="submit">Send</button>
+      </div>
+    </form>
+
+    <div class="suggest-card suggest-thanks" id="suggest-thanks" hidden>
+      <h3 class="panel-title">Thank you!</h3>
+      <p class="suggest-thanks-text">Your message has been sent. Every suggestion gets read.</p>
+      <div class="suggest-actions">
+        <button class="btn small" id="suggest-again" type="button">Send another</button>
+      </div>
     </div>
   </section>
 
@@ -220,6 +255,7 @@
   <script src="js/grx/grx-config.js" defer></script>
   <script src="js/grx/grx-engine.js" defer></script>
   <script src="js/dev.js" defer></script>
+  <script src="js/suggest.js" defer></script>
   <script src="js/track-record.js" defer></script>
   <script src="js/episode.js" defer></script>
   <script src="js/main.js" defer></script>
