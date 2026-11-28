@@ -32,7 +32,7 @@ const Cast = (function () {
 
   /* ---------- 1. Settings ---------- */
   const CAST_MIN = 8;        // fewest queens you can start a season with
-  const CAST_MAX = 14;       // most queens you can pick
+  const CAST_MAX = 16;       // most queens you can pick
   const RESULT_LIMIT = 10;   // search results shown (the grid is 5 wide x 2 tall)
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
   const START_MESSAGE = 'Start searching to find your cast.';
@@ -465,7 +465,7 @@ const Cast = (function () {
     announce(text);
   }
 
-  // A season button: its name, how many queens, and a few faces
+  // A season button: its name and how many queens (hover for the names)
   function makeSeasonCard(season) {
     const card = make('button', 'season-card');
     card.type = 'button';
@@ -473,21 +473,6 @@ const Cast = (function () {
     card.appendChild(make('span', 'season-name', season.label));
     card.appendChild(make('span', 'season-count', season.queens.length + ' queens'));
 
-    const faces = make('span', 'season-faces');
-    season.queens.slice(0, 6).forEach(function (queen) {
-      const face = make('span', 'season-face');
-      if (queen.image) {
-        const img = document.createElement('img');
-        img.src = queen.image;
-        img.alt = '';
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.addEventListener('error', function () { img.remove(); });
-        face.appendChild(img);
-      }
-      faces.appendChild(face);
-    });
-    card.appendChild(faces);
     card.title = season.full + ': ' + season.queens.map(function (q) { return q.name; }).join(', ');
     card.addEventListener('click', function () { loadSeason(season); });
     return card;
