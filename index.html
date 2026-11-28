@@ -40,21 +40,35 @@
   <!-- ============ HOME ============ -->
   <section class="screen screen--home is-active" data-screen="home">
 
-    <!-- Logo -->
-    <div class="brand">
-      <h1 class="wordmark">GreenRoom<i class="dot"></i></h1>
-      <p class="tag">simulator</p>
+    <!-- Online indicator (top right). js/main.js switches it to OFFLINE if the connection drops. -->
+    <div class="status" id="net-status" role="status" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span><span class="status-text">ONLINE</span>
     </div>
 
-    <!-- Main menu -->
-    <nav class="menu" aria-label="Main menu">
-      <button class="btn start" data-goto="setup" data-autofocus>Start</button>
-      <div class="row">
-        <button class="btn minor" data-goto="changelog">Changelog</button>
-        <button class="btn minor" data-goto="suggest">Suggest a feature</button>
-        <button class="btn minor" data-goto="credits">Credits</button>
+    <div class="home-layout">
+
+      <!-- Logo (on the right, big) -->
+      <div class="brand">
+        <h1 class="wordmark">GreenRoom<i class="dot"></i></h1>
+        <p class="tag">simulator</p>
       </div>
-    </nav>
+
+      <!-- Main menu (on the left) -->
+      <nav class="menu" aria-label="Main menu">
+        <button class="btn start" data-goto="setup" data-autofocus>
+          <span>Start</span>
+          <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 12h15M13 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="minor-list">
+          <button class="btn minor" data-goto="changelog">Changelog</button>
+          <button class="btn minor" data-goto="suggest">Suggest a feature</button>
+          <button class="btn minor" data-goto="credits">Credits</button>
+        </div>
+      </nav>
+
+    </div>
 
   </section>
 

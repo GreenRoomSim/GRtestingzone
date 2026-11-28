@@ -1,26 +1,53 @@
 /* ==========================================================================
    GreenRoom Simulator - css/home.css
-   The home screen: logo (wordmark) and the main menu buttons.
+   The home screen: menu buttons on the left, big logo on the right, and the
+   ONLINE indicator in the top right.
    Sections:
-     1. Home screen layout, logo and menu
-     2. Accessibility (reduced motion)
+     1. Layout (two columns, stacks on small screens)
+     2. Logo (wordmark)
+     3. Menu buttons
+     4. Online indicator
+     5. Accessibility (reduced motion)
    ========================================================================== */
 
 
-/* ---------- 1. Home screen ---------- */
+/* ---------- 1. Layout ---------- */
 .screen--home {
+  position: relative;
   justify-content: center;
-  gap: clamp(36px, 7vh, 80px);
 }
 
-/* Logo (wordmark) */
-.brand { user-select: none; }
+.home-layout {
+  width: min(100%, 1400px);
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);   /* menu | logo */
+  align-items: center;
+  gap: clamp(32px, 6vw, 100px);
+}
+
+.menu  { grid-column: 1; grid-row: 1; }
+.brand { grid-column: 2; grid-row: 1; }
+
+/* Phones and small tablets: logo on top, menu underneath */
+@media (max-width: 860px) {
+  .home-layout { grid-template-columns: 1fr; gap: clamp(28px, 6vh, 56px); }
+  .brand, .menu { grid-column: 1; }
+  .brand { grid-row: 1; }
+  .menu  { grid-row: 2; width: min(100%, 460px); margin: 0 auto; }
+}
+
+
+/* ---------- 2. Logo (wordmark) ---------- */
+.brand {
+  user-select: none;
+  text-align: center;
+}
 
 .wordmark {
   margin: 0;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: clamp(3.4rem, 12vw, 12rem);   /* min, scales with screen, max */
+  font-size: clamp(3.2rem, 10.5vw, 12rem);   /* min, scales with screen, max */
   line-height: 0.9;
   letter-spacing: -0.045em;
   color: var(--ink);
@@ -53,7 +80,7 @@
   gap: 18px;
   padding-left: 0.32em;          /* balances the letter-spacing */
   font-weight: 700;
-  font-size: clamp(1rem, 2.1vw, 1.7rem);
+  font-size: clamp(1rem, 2.1vw, 1.9rem);
   letter-spacing: 0.32em;
   color: var(--ink);
 }
@@ -67,42 +94,101 @@
   background: var(--accent);
 }
 
-/* Menu layout */
+
+/* ---------- 3. Menu buttons ---------- */
 .menu {
-  width: min(100%, 860px);
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(22px, 3.6vw, 36px);
+  gap: clamp(22px, 3.6vh, 34px);
 }
 
-/* The three smaller buttons in a line */
-.row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: clamp(14px, 2.2vw, 26px);
-}
-
-/* The big main button */
+/* The big green Start button, with an arrow on the right */
 .btn.start {
-  font-size: clamp(2.3rem, 5vw, 4.2rem);
-  padding: clamp(24px, 4.6vh, 48px) 20px;
-  border-radius: 26px;
+  --edge: var(--accent-edge);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(22px, 4vh, 40px) clamp(24px, 3vw, 38px);
+  font-size: clamp(2rem, 3.8vw, 3.4rem);
   letter-spacing: 0.02em;
+  text-align: left;
+  border-radius: 26px;
+  color: var(--ink-deep);
+  background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent) 55%);
 }
 
-/* The three smaller buttons */
+.btn.start .arrow {
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  transition: transform 0.14s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn.start:not(:disabled):hover .arrow { transform: translateX(8px); }
+}
+.btn.start:not(:disabled):focus-visible .arrow { transform: translateX(8px); }
+
+/* Changelog / Suggest / Credits: quieter, whitish buttons stacked underneath */
+.minor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .btn.minor {
-  font-size: clamp(0.95rem, 1.9vw, 1.55rem);
-  padding: clamp(16px, 3vh, 30px) 12px;
+  --edge: rgba(40, 106, 82, 0.3);
+  --lift: 5px;
+  padding: 15px 22px;
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  text-align: left;
+  border-radius: 16px;
+  color: var(--ink);
+  background: linear-gradient(180deg, #ffffff 0%, #eef6f1 100%);
 }
 
-/* Phones: stack the three small buttons */
-@media (max-width: 560px) {
-  .row { grid-template-columns: 1fr; }
+
+/* ---------- 4. Online indicator (top right) ---------- */
+.status {
+  position: absolute;
+  top: 14px;
+  right: clamp(14px, 3vw, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 999px;
+  user-select: none;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px 2px var(--accent-soft);
+  animation: live 2.6s ease-out infinite;
+}
+
+/* Offline: grey dot, no glow */
+.status.is-offline .status-dot {
+  background: #9a9a9a;
+  box-shadow: none;
+  animation: none;
 }
 
 
-/* ---------- 2. Accessibility ---------- */
+/* ---------- 5. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .dot { animation: none; }
+  .dot, .status-dot { animation: none; }
+  .btn.start .arrow { transition: none; }
 }
