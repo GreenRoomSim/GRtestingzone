@@ -623,6 +623,7 @@ const Episode = (function () {
       ? { top2: draft.pair.map(function (q) { return q.id; }), lswin: draft.winner.id }
       : { win: draft.tops[0].id, low: draft.low ? draft.low.id : null, stay: draft.stay.id, double: draft.double || null };
     let step = 0;
+    let moreOpen = !!pick.double;         // the More options menu starts open if a double is already set
 
     const TEXT = premiere ? {
       top2:  ['Choose the top 2', 'Pick the two queens who lip sync for the win. The other tops will be HIGH.', opts.top2],
@@ -686,13 +687,21 @@ const Episode = (function () {
           child.setAttribute('aria-pressed', String(on));
         });
       }
-      // Save both / Eliminate both (regular lip syncs only)
+      // "More options" (regular lip syncs only): opens Save Both / Eliminate Both
       function drawDoubles() {
         rigExtra.textContent = '';
         if (kind !== 'stay') return;
-        [['shantay', 'Save both'], ['sashay', 'Eliminate both']].forEach(function (entry) {
+        const toggle = make('button', 'rig-more', 'More options');
+        toggle.type = 'button';
+        toggle.setAttribute('aria-expanded', String(moreOpen));
+        toggle.addEventListener('click', function () { moreOpen = !moreOpen; drawDoubles(); });
+        rigExtra.appendChild(toggle);
+        if (!moreOpen) return;
+
+        const panel = make('div', 'rig-more-panel');
+        [['shantay', 'Save Both Queens'], ['sashay', 'Eliminate Both Queens']].forEach(function (entry) {
           if (opts.doubles.indexOf(entry[0]) === -1) return;
-          const b = make('button', 'rig-double-btn', entry[1]);
+          const b = make('button', 'rig-opt rig-opt--' + entry[0], entry[1]);
           b.type = 'button';
           b.setAttribute('aria-pressed', String(pick.double === entry[0]));
           b.addEventListener('click', function () {
@@ -700,8 +709,9 @@ const Episode = (function () {
             paint();
             drawDoubles();
           });
-          rigExtra.appendChild(b);
+          panel.appendChild(b);
         });
+        rigExtra.appendChild(panel);
       }
       TEXT[kind][2].forEach(function (id) {
         const b = rigCard(id, false);

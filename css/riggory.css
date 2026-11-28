@@ -106,52 +106,41 @@ body.rig-open .confetti * { animation-play-state: paused !important; }
 .rig-double:empty { display: none; }
 .rig-double-btn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--accent), 0 0 18px 4px var(--accent); }
 
-/* ---------- Bigger queen cards + roomier popup ---------- */
-.modal--rig { width: min(94vw, 580px); }
-.modal--rig.modal--wide { width: min(94vw, 680px); }
-
-.rig-grid {
-  --name-size: 0.85rem;
-  --name-size-long: 0.75rem;
-  --name-size-xlong: 0.66rem;
-  gap: 14px;
-}
-.modal--rig .rig-grid .queen-card { width: 130px !important; height: 162px !important; }
-.modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 100px !important; height: 125px !important; }
-.modal--rig .rig-grid[data-kind="top2"] { gap: 10px; }
-
-/* Phones: back to a size that fits */
-@media (max-width: 560px) {
-  .modal--rig .rig-grid .queen-card { width: 96px !important; height: 120px !important; }
-  .modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 66px !important; height: 83px !important; }
-}
-
-/* Cancel / Lock In: the main buttons */
-.rig-actions { gap: 14px 18px; padding-bottom: 12px; }
-
-/* Save both / Eliminate both: small, quiet text links underneath */
-.rig-double { display: flex; justify-content: center; gap: 18px; margin: 10px 0 0; }
-.rig-double-btn {
+/* "More options": quiet caps label under Cancel / Lock In */
+.rig-double { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 6px 0 0; }
+.rig-more {
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 4px 6px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 4px 8px;
   color: var(--ink);
   background: none;
   border: 0;
-  opacity: 0.55;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  opacity: 0.5;
   cursor: pointer;
 }
-.rig-double-btn:hover,
-.rig-double-btn:focus-visible { opacity: 1; outline: none; }
-.rig-double-btn[aria-pressed="true"] {
-  opacity: 1;
-  text-decoration: none;
-  padding: 4px 12px;
-  border-radius: 999px;
-  color: var(--pale);
-  background: var(--ink);
+.rig-more:hover,
+.rig-more:focus-visible,
+.rig-more[aria-expanded="true"] { opacity: 0.85; outline: none; }
+
+/* The extra menu: Save Both / Eliminate Both in their placement colours */
+.rig-more-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.rig-opt {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.12s ease, box-shadow 0.12s ease;
 }
+.rig-opt:hover,
+.rig-opt:focus-visible { opacity: 1; outline: none; }
+.rig-opt--shantay { background: #ff69b4; color: var(--ink-deep); }   /* double save = BTM2 pink */
+.rig-opt--sashay  { background: #8b0000; color: #fff; }              /* double elim = deep red */
+.rig-opt[aria-pressed="true"] { opacity: 1; box-shadow: 0 0 0 3px #fff, 0 0 0 6px currentColor; }
 }
