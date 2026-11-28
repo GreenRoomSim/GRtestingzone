@@ -15,13 +15,15 @@
 .screen--home {
   position: relative;
   justify-content: center;
-  /* a bit less room on the left, more on the right: everything sits slightly further left */
-  padding-left: clamp(18px, 3vw, 48px);
-  padding-right: clamp(18px, 6vw, 110px);
+  padding-left: clamp(18px, 4vw, 64px);
+  padding-right: clamp(18px, 4vw, 64px);
+  overflow: hidden;              /* the glow never makes the page scroll */
 }
 
-/* Soft, relaxed glow behind the logo (plus a faint one bottom left) for depth.
-   It breathes very slowly. Change the rgba() numbers to make it stronger or fainter. */
+/* Soft, relaxed glow with some depth: a bright core and a wider mint halo
+   behind the logo, a soft "floor" shadow under it, and a faint glow bottom
+   left. It breathes very slowly. Change the rgba() numbers to make it
+   stronger or fainter. */
 .screen--home::before {
   content: "";
   position: absolute;
@@ -29,8 +31,11 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 52% 62% at 66% 48%, rgba(255, 255, 255, 0.8) 0%, rgba(140, 230, 185, 0.34) 40%, rgba(140, 230, 185, 0) 74%),
-    radial-gradient(ellipse 40% 46% at 10% 92%, rgba(76, 189, 136, 0.22) 0%, rgba(76, 189, 136, 0) 70%);
+    radial-gradient(ellipse 22% 28% at 74% 44%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 40% 50% at 74% 46%, rgba(190, 245, 215, 0.7) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 58% 70% at 74% 48%, rgba(140, 230, 185, 0.38) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 34% 9% at 74% 80%, rgba(27, 77, 59, 0.22) 0%, rgba(27, 77, 59, 0) 100%),
+    radial-gradient(ellipse 40% 46% at 8% 94%, rgba(76, 189, 136, 0.22) 0%, rgba(76, 189, 136, 0) 100%);
   animation: glow-breathe 11s ease-in-out infinite alternate;
 }
 
@@ -44,12 +49,12 @@
   z-index: 1;
   width: min(100%, 1400px);
   display: grid;
-  grid-template-columns: minmax(360px, 620px) minmax(0, 1fr);   /* menu | logo */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);   /* menu (left half) | logo (right half) */
   align-items: center;
-  gap: clamp(32px, 5vw, 80px);
+  gap: clamp(32px, 4vw, 64px);
 }
 
-.menu  { grid-column: 1; grid-row: 1; }
+.menu  { grid-column: 1; grid-row: 1; justify-self: center; }
 .brand { grid-column: 2; grid-row: 1; }
 
 /* Phones and small tablets: logo on top, menu underneath */
@@ -71,11 +76,12 @@
   margin: 0;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: clamp(3.2rem, 9vw, 11rem);   /* min, scales with screen, max */
+  font-size: clamp(3.2rem, 8.4vw, 10.5rem);   /* min, scales with screen, max */
   line-height: 0.9;
   letter-spacing: -0.045em;
   color: var(--ink);
   white-space: nowrap;
+  text-shadow: 0 0.03em 0 rgba(27, 77, 59, 0.14), 0 0.12em 0.22em rgba(18, 58, 43, 0.22);   /* a little depth */
 }
 
 /* The pulsing green dot after "GreenRoom" */
@@ -121,7 +127,7 @@
 
 /* ---------- 3. Menu buttons ---------- */
 .menu {
-  width: 100%;
+  width: min(100%, 620px);
   display: flex;
   flex-direction: column;
   gap: clamp(26px, 4.4vh, 42px);
