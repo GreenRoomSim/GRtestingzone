@@ -55,7 +55,7 @@ const TrackRecord = (function () {
   }
 
   // Best to worst, used to order the rows
-  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'RUN', 'LOW', 'BTM1', 'BTM2', 'ELIM'];
+  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'BTM1', 'RUN', 'LOW', 'BTM2', 'ELIM'];
   function placementRank(p) {
     const i = PLACEMENT_ORDER.indexOf(p);
     return i === -1 ? PLACEMENT_ORDER.length : i;

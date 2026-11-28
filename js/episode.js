@@ -168,13 +168,6 @@ const Episode = (function () {
                text: 'The performing queens walk the runway.',
                groups: [{ items: plain(performing) }] });
 
-    const critGroups = [{ label: 'Tops', items: plain(t.top2) }];
-    if (t.critiqued.length) critGroups.push({ label: 'Critiqued', items: plain(t.critiqued) });
-    critGroups.push({ label: 'Bottom', items: plain([t.btm]) });
-    out.push({ id: 'critiques', title: 'The critiques',
-               text: 'The judges give their critiques, along with the votes of the other queens.',
-               groups: critGroups });
-
     if (t.critiqued.length) {
       out.push({ id: 'safe', title: 'Safe',
                  text: 'These queens are safe.',
@@ -184,6 +177,17 @@ const Episode = (function () {
     out.push({ id: 'top2', kicker: 'The top queens', together: true,
                groups: [{ size: 'mid', items: t.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
                           text: names(t.top2) + ', you are the top two of the week.' }] });
+
+    // The bottom queen is named before the top 2 lip sync
+    if (part === 1) {
+      out.push({ id: 'btm1', kicker: 'The bottom queen', together: true,
+                 groups: [{ size: 'mid', items: [item(t.btm, 'BTM1', 'btm')],
+                            text: name(t.btm) + ', you are safe this week. But next week, you will lip sync for your life against next week\u2019s bottom queen.' }] });
+    } else {
+      out.push({ id: 'bottom', kicker: 'The bottom queens', together: true,
+                 groups: [{ size: 'mid', items: [t.btm, t.prevBtm].map(function (id) { return item(id, 'BTM2', 'btm'); }),
+                            text: name(t.btm) + ', you are this week\u2019s bottom queen, and you will be lip syncing for your life against last week\u2019s bottom queen, ' + name(t.prevBtm) + '.' }] });
+    }
 
     const song = ev.lipsync.song;
     out.push({ id: 'lipsync', title: 'Lip sync for the win',
@@ -196,17 +200,8 @@ const Episode = (function () {
                         { size: 'compact', items: [item(loser, 'TOP 2', 'top2')],
                           text: name(loser) + ', you were fierce tonight. You are safe.' }] });
 
-    if (part === 1) {
-      out.push({ id: 'btm1', kicker: 'The bottom queen', together: true,
-                 groups: [{ size: 'mid', items: [item(t.btm, 'BTM1', 'btm')],
-                            text: name(t.btm) + ', you are safe this week. But next week, you will lip sync for your life against next week\u2019s bottom queen.' }] });
-      out.push({ id: 'no-elimination', title: 'No one goes home tonight',
-                 text: 'The other half of the cast performs next week.' });
-    } else {
+    if (part === 2) {
       const bl = ev['btm-lipsync'];
-      out.push({ id: 'bottom', kicker: 'The bottom queens', together: true,
-                 groups: [{ size: 'mid', items: bl.queens.map(function (id) { return item(id, 'BTM2', 'btm'); }),
-                            text: names(bl.queens) + ', you are the bottom two of the Talent Show. I\u2019m sorry my dear, but you are up for elimination.' }] });
       const bsong = bl.song;
       out.push({ id: 'lipsync-life', title: 'Lip sync for your life',
                  text: bsong ? '\u266A ' + bsong.title + ' \u2013 ' + bsong.artist + ' \u266A' : '',
@@ -229,7 +224,8 @@ const Episode = (function () {
       }
     }
 
-    out.push({ id: 'track', title: 'Track record', track: true });
+    out.push({ id: 'track', title: 'Track record', track: true,
+               text: part === 1 ? 'No one goes home tonight. The other half of the cast performs next week.' : '' });
     return out;
   }
 
