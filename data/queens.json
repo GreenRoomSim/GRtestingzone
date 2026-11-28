@@ -1,6 +1,5 @@
 {
   "queens": [
-    [
     {
       "name": "Victoria 'Porkchop' Parker",
       "image": "victoria_porkchop_parker.webp",
@@ -3150,6 +3149,5 @@
     "seasons": ["CA S7"],
     "stats": [9, 8, 9, 8, 6]
   }
-]
 ]
 }
