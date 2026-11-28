@@ -191,6 +191,15 @@ const GRX_CONFIG = {
   },
 
   finale: {
+    /* WINNER (Top 3 / Top 4 finale): the finalist with the best TRACK RECORD
+       wins with this chance. The rest of the chance is shared between the
+       others, better records first (3 finalists: 75% / ~17% / ~8%).
+       Track record = wins * trackWinWeight - BTM2s * trackBtm2Penalty
+       (average stats only break exact ties). */
+    bestRecordChance: 0.75,
+    trackWinWeight: 1,
+    trackBtm2Penalty: 0.5,
+
     lipSyncShare: 0.5,
     winBonus: 0.5,
     btm2Penalty: 0.25

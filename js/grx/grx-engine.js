@@ -758,10 +758,27 @@ const GRX = (function () {
     }
     const finalists = contenders.map(function (e) { return e.q; });
 
-    const scored = contenders.map(function (e) {
-      const sync = roll(state, e.q, { lipSync: 1 }, C.lipSyncChaos);
-      return { q: e.q, total: sync * F.lipSyncShare + e.resume * (1 - F.lipSyncShare) };
-    }).sort(function (a, b) { return b.total - a.total; });
+    // Winner: the best track record wins with F.bestRecordChance, the rest of
+    // the chance is shared by the others (better records first).
+    const avgStat = function (q) {
+      const k = Object.keys(q.stats);
+      return k.reduce(function (s, key) { return s + q.stats[key]; }, 0) / k.length;
+    };
+    const trackScore = function (q) {
+      return q.wins * F.trackWinWeight - q.lipSyncs * F.trackBtm2Penalty + avgStat(q) * 0.01;
+    };
+    const byRecord = contenders.map(function (e) { return e.q; })
+      .sort(function (a, b) { return trackScore(b) - trackScore(a); });
+    const kN = byRecord.length;
+    const share = (1 - F.bestRecordChance) / ((kN * (kN - 1)) / 2 || 1);
+    let pickRoll = state.rng();
+    let winIdx = kN - 1;
+    for (let i = 0; i < kN; i++) {
+      pickRoll -= i === 0 ? F.bestRecordChance : share * (kN - i);
+      if (pickRoll < 0) { winIdx = i; break; }
+    }
+    const order = [byRecord[winIdx]].concat(byRecord.filter(function (q, i) { return i !== winIdx; }));
+    const scored = order.map(function (q) { return { q: q }; });
 
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
 
