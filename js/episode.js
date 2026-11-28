@@ -273,15 +273,25 @@ const Episode = (function () {
                groups: [{ label: 'Tops', items: plain(ev.critiques.tops) },
                         { label: 'Bottoms', items: plain(ev.critiques.bottoms) }] });
 
-    out.push({ id: 'top', kicker: 'The top queens', together: true,
-               groups: [{ size: 'mid', items: r.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
-                          text: r.top2.map(name).join(' and ') + ', you are the top two of the week. You will lip sync for your legacy!' }] });
+    const legacyTop = [];
+    if (r.high.length) {
+      legacyTop.push({ size: 'compact',
+                       items: r.high.map(function (id) { return item(id, 'HIGH', 'high'); }),
+                       text: 'Excellent work this week, you are safe.' });
+    }
+    legacyTop.push({ size: 'mid', items: r.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
+                     text: r.top2.map(name).join(' and ') + ', you are the top two of the week. You will lip sync for your legacy!' });
+    out.push({ id: 'top', kicker: 'The top queens', together: true, groups: legacyTop });
 
-    out.push({ id: 'bottom', kicker: 'The bottom queens', together: true,
-               groups: [{ size: 'compact',
-                          items: r.btm2.map(function (id) { return item(id, 'BTM' + r.btm2.length, 'btm'); }),
-                          text: r.btm2.map(name).join(', ') + ', I\u2019m sorry my dear, but you are up for elimination. ' +
-                                'The winner of the lip sync will decide who goes home.' }] });
+    const legacyBtm = [];
+    if (r.low) {
+      legacyBtm.push({ size: 'mid', items: [item(r.low, 'LOW', 'low')], text: name(r.low) + ', you are... safe.' });
+    }
+    legacyBtm.push({ size: 'compact',
+                     items: r.btm2.map(function (id) { return item(id, 'BTM' + r.btm2.length, 'btm'); }),
+                     text: r.btm2.map(name).join(', ') + ', I\u2019m sorry my dear, but you are up for elimination. ' +
+                           'The winner of the lip sync will decide who goes home.' });
+    out.push({ id: 'bottom', kicker: 'The bottom queens', together: true, groups: legacyBtm });
 
     const song = ev.lipsync.song;
     out.push({ id: 'lipsync', title: 'Lip sync for your legacy',
@@ -1082,6 +1092,13 @@ const Episode = (function () {
       if (rule && rule.minCast && cast < rule.minCast) {
         showError('You must have at least ' + rule.minCast + ' queens in your cast to use the Split Premiere. ' +
                   'You have ' + cast + '. Add more queens or pick a different premiere.');
+        return;
+      }
+      // Lip Sync Legacy needs a minimum cast too
+      const LG = GRX_CONFIG.legacy;
+      if (settings.format === 'lipsync-legacy' && LG && LG.minCast && cast < LG.minCast) {
+        showError('You must have at least ' + LG.minCast + ' queens in your cast to use Lip Sync Legacy. ' +
+                  'You have ' + cast + '. Add more queens or pick a different format.');
         return;
       }
       // The Talent Show extra needs a minimum cast too

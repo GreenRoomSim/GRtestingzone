@@ -53,7 +53,6 @@ const SETUP_OPTIONS = [
     choices: [
       { id: 'regular',          label: 'Regular' },
       { id: 'lipsync-legacy',   label: 'Lip Sync Legacy',
-        note: 'Top 2 lip sync, the winner chops',
         forces: { premiere: 'regular', finale: 'top3', extras: [] },
         forcesNote: 'Lip Sync Legacy uses a Regular premiere and a Top 3 finale, with no extras for now.' },
       { id: 'lipsync-assassin', label: 'Lip Sync Assassin', locked: true }

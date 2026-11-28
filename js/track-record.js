@@ -194,8 +194,11 @@ const TrackRecord = (function () {
         let cls = placement ? (PLACEMENT_CLASS[placement] || '') : '';
         if (placement === 'ELIM' && log.double === 'sashay') cls += ' p-double-elim';
         if (placement === 'BTM2' && log.double === 'shantay') cls += ' p-double-btm';
+        let text = placement === 'SAFE-C' ? 'SAFE' : placement;
+        // Lip Sync Legacy: the top 2 queen who lost the lip sync still gets a WIN, in the TOP2 colour
+        if (season.legacy && placement === 'TOP2') text = 'WIN';
         row.appendChild(placement
-          ? make('td', cls.trim(), placement === 'SAFE-C' ? 'SAFE' : placement)
+          ? make('td', cls.trim(), text)
           : make('td', 'p-gone'));
       });
 

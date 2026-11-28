@@ -359,9 +359,16 @@ const GRX = (function () {
     if (row.bottom3Chance && state.rng() < row.bottom3Chance) bottom = 3;
     bottom = Math.min(bottom, n - 2);
 
+    // Order, best to worst: top 2, HIGHs, SAFE, LOW, bottom. A LOW only comes with a BTM2.
+    const hasLow = bottom === 2 && row.lowChance && n - 2 - bottom >= 1 && state.rng() < row.lowChance;
+    const room = n - 2 - bottom - (hasLow ? 1 : 0);
+    const highCount = row.high ? Math.min(room, 1 + Math.floor(state.rng() * row.high)) : 0;
+
     const pair = ranked.slice(0, 2);
+    const highs = ranked.slice(2, 2 + highCount);
     const bottoms = ranked.slice(n - bottom);          // best to worst: the weakest is last
-    const safe = ranked.slice(2, n - bottom);
+    const low = hasLow ? ranked[n - bottom - 1] : null;
+    const safe = ranked.slice(2 + highCount, n - bottom - (hasLow ? 1 : 0));
 
     const ls = pair.map(function (q) {
       return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
@@ -377,7 +384,7 @@ const GRX = (function () {
 
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
     return { kind: 'legacy', events: events, active: active, n: n, pair: pair,
-             winner: ls[0].q, loser: ls[1].q, safe: safe, bottoms: bottoms, chopped: chopped, song: song };
+             winner: ls[0].q, loser: ls[1].q, highs: highs, low: low, safe: safe, bottoms: bottoms, chopped: chopped, song: song };
   }
 
 
@@ -527,8 +534,8 @@ const GRX = (function () {
     if (d.kind === 'legacy') {
       return [
         { type: 'safe', queens: ids(d.safe) },
-        { type: 'critiques', tops: ids(d.pair), bottoms: ids(d.bottoms) },
-        { type: 'results', legacy: true, win: d.winner.id, high: [], low: null, btm2: ids(d.bottoms), top2: ids(d.pair) },
+        { type: 'critiques', tops: ids(d.pair.concat(d.highs)), bottoms: ids((d.low ? [d.low] : []).concat(d.bottoms)) },
+        { type: 'results', legacy: true, win: d.winner.id, high: ids(d.highs), low: d.low ? d.low.id : null, btm2: ids(d.bottoms), top2: ids(d.pair) },
         { type: 'lipsync', kind: 'top2', queens: ids(d.pair), winner: d.winner.id, loser: d.loser.id,
           stay: d.winner.id, forcedByCap: false,
           song: d.song ? { id: d.song.id, title: d.song.title, artist: d.song.artist } : null },
@@ -570,6 +577,8 @@ const GRX = (function () {
       const idsL = function (list) { return list.map(function (q) { return q.id; }); };
       const placement = {};
       d.safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
+      d.highs.forEach(function (q) { placement[q.id] = 'HIGH'; });
+      if (d.low) placement[d.low.id] = 'LOW';
       d.bottoms.forEach(function (q) { placement[q.id] = d.bottoms.length === 3 ? 'BTM3' : 'BTM2'; });
       placement[d.winner.id] = 'WIN';
       placement[d.loser.id] = 'TOP2';
