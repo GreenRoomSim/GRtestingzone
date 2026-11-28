@@ -135,9 +135,108 @@ const Episode = (function () {
     return out;
   }
 
+  // Talent Show (two parts). Part 1: top 2 lip sync for the win, one BTM1 is
+  // safe for now. Part 2: same, then the two BTM queens lip sync for their lives.
+  function buildTalentScenes(log, ev) {
+    const out = [];
+    const t = ev['talent-results'];
+    const part = t.part;
+    const performing = t.performing, raters = t.raters;
+    const winner = ev.lipsync.winner, loser = ev.lipsync.loser;
+
+    out.push({ id: 'challenge', title: 'This week\u2019s maxi challenge', big: 'Talent Show',
+               text: part === 1 ? 'This is a two part challenge! Half of the queens perform this week, and the other half perform next week.'
+                                : 'Part two of the Talent Show! The second group performs tonight.',
+               groups: part === 1
+                 ? [{ label: 'Week one', size: 'compact', items: plain(performing) },
+                    { label: 'Week two', size: 'compact', items: plain(raters) }]
+                 : [{ label: 'Performing tonight', size: 'compact', items: plain(performing) }] });
+
+    const cats = [];
+    C_BANDS().forEach(function (id) {
+      if (ev.challenge.bands[id].length) cats.push({ ids: ev.challenge.bands[id], text: BAND_TEXT[id] });
+    });
+    out.push({ id: 'challenge-perform', kicker: part === 1 ? 'Talent Show: week one' : 'Talent Show: week two',
+               title: 'Talent Show', cats: cats });
+
+    out.push({ id: 'rate', kicker: 'It\u2019s time for', title: 'Rate A Queen',
+               text: 'The queens who are not performing rate tonight\u2019s performers.',
+               groups: [{ label: 'Rating', size: 'compact', items: plain(raters) }] });
+
+    out.push({ id: 'runway', kicker: 'The runway',
+               title: ev.runway.theme ? ev.runway.theme.name : 'The runway',
+               text: 'The performing queens walk the runway.',
+               groups: [{ items: plain(performing) }] });
+
+    const critGroups = [{ label: 'Tops', items: plain(t.top2) }];
+    if (t.critiqued.length) critGroups.push({ label: 'Critiqued', items: plain(t.critiqued) });
+    critGroups.push({ label: 'Bottom', items: plain([t.btm]) });
+    out.push({ id: 'critiques', title: 'The critiques',
+               text: 'The judges give their critiques, along with the votes of the other queens.',
+               groups: critGroups });
+
+    if (t.critiqued.length) {
+      out.push({ id: 'safe', title: 'Safe',
+                 text: 'These queens are safe.',
+                 groups: [{ items: t.critiqued.map(function (id) { return item(id, 'SAFE', 'safe'); }) }] });
+    }
+
+    out.push({ id: 'top2', kicker: 'The top queens', together: true,
+               groups: [{ size: 'mid', items: t.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
+                          text: names(t.top2) + ', you are the top two of the week.' }] });
+
+    const song = ev.lipsync.song;
+    out.push({ id: 'lipsync', title: 'Lip sync for the win',
+               text: song ? '\u266A ' + song.title + ' \u2013 ' + song.artist + ' \u266A' : '',
+               groups: [{ big: true, vs: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    out.push({ id: 'winner', kicker: 'The winner of the lip sync', together: true,
+               groups: [{ size: 'mid', items: [item(winner, 'WIN', 'win', 'winner')],
+                          text: name(winner) + ', condragulations, you are the winner of this week\u2019s challenge!!' },
+                        { size: 'compact', items: [item(loser, 'TOP 2', 'top2')],
+                          text: name(loser) + ', you were fierce tonight. You are safe.' }] });
+
+    if (part === 1) {
+      out.push({ id: 'btm1', kicker: 'The bottom queen', together: true,
+                 groups: [{ size: 'mid', items: [item(t.btm, 'BTM1', 'btm')],
+                            text: name(t.btm) + ', you are safe this week. But next week, you will lip sync for your life against next week\u2019s bottom queen.' }] });
+      out.push({ id: 'no-elimination', title: 'No one goes home tonight',
+                 text: 'The other half of the cast performs next week.' });
+    } else {
+      const bl = ev['btm-lipsync'];
+      out.push({ id: 'bottom', kicker: 'The bottom queens', together: true,
+                 groups: [{ size: 'mid', items: bl.queens.map(function (id) { return item(id, 'BTM2', 'btm'); }),
+                            text: names(bl.queens) + ', you are the bottom two of the Talent Show. I\u2019m sorry my dear, but you are up for elimination.' }] });
+      const bsong = bl.song;
+      out.push({ id: 'lipsync-life', title: 'Lip sync for your life',
+                 text: bsong ? '\u266A ' + bsong.title + ' \u2013 ' + bsong.artist + ' \u266A' : '',
+                 groups: [{ big: true, vs: true, items: bl.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+      if (bl.double === 'shantay') {
+        out.push({ id: 'shantay', title: 'Double shantay',
+                   text: bl.queens.map(name).join(' and ') + ', shantay, you both stay.',
+                   groups: [{ big: true, items: bl.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+      } else if (bl.double === 'sashay') {
+        out.push({ id: 'double-sashay', title: 'Double sashay',
+                   text: ev.elimination.queens.map(name).join(' and ') + ', sashay away.',
+                   groups: [{ big: true, items: ev.elimination.queens.map(function (id) { return item(id, 'ELIMINATED', 'elim', 'out'); }) }] });
+      } else {
+        out.push({ id: 'shantay', title: 'Shantay, you stay',
+                   text: name(bl.stay) + ', shantay, you stay.',
+                   groups: [{ big: true, items: [item(bl.stay, null, null, 'glow')] }] });
+        out.push({ id: 'sashay', title: 'Sashay away',
+                   text: name(ev.elimination.queen) + ', sashay away.',
+                   groups: [{ big: true, items: [item(ev.elimination.queen, 'ELIMINATED', 'elim', 'out')] }] });
+      }
+    }
+
+    out.push({ id: 'track', title: 'Track record', track: true });
+    return out;
+  }
+
   function buildScenes(log) {
     const ev = {};
     log.events.forEach(function (e) { ev[e.type] = e; });
+    if (log.talentShow) return buildTalentScenes(log, ev);
     if (log.premiere) return buildPremiereScenes(log, ev);
     const out = [];
 
@@ -545,6 +644,7 @@ const Episode = (function () {
                   appearing: d.active.map(function (q) { return q.id; }),
                   events: d.events.concat(GRX.resultEvents(d)) };
     if (d.kind === 'premiere') log.premiere = true;
+    if (d.talent) log.talentShow = d.talent;
     return log;
   }
 

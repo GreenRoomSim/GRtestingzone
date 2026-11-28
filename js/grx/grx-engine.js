@@ -125,12 +125,12 @@ const GRX = (function () {
     const first = state.episode === 1;
     const p = seasonProgress(state);
     // 'once' challenges (staples) that have already happened are out for good
-    const available = C.challenges.filter(function (c) { return !(c.once && hist.indexOf(c.id) !== -1); });
+    const available = C.challenges.filter(function (c) { return !c.special && !(c.once && hist.indexOf(c.id) !== -1); });
     const byId = function (id) { return C.challenges.find(function (c) { return c.id === id; }); };
 
     // Episode 1: a 'first episode only' challenge (Talent Show) is picked
     if (first) {
-      const openers = available.filter(function (c) { return c.firstEpisode === 'only'; });
+      const openers = available.filter(function (c) { return c.firstEpisode === 'only' || (C.openers || []).indexOf(c.id) !== -1; });
       if (openers.length) return openers[Math.floor(state.rng() * openers.length)];
     }
 
@@ -218,6 +218,112 @@ const GRX = (function () {
   }
 
 
+  /* ---------- Talent Show (two-part challenge) ---------- */
+  // 0 = not a talent show episode, 1 = part 1 (starts now), 2 = part 2 (due now)
+  function talentShowPhase(state, everyone, isPremiere) {
+    const T = C.talentShow;
+    if (!T || isPremiere) return 0;
+    if (state.talentShow) return state.talentShow.done ? 0 : 2;
+    if (state.queens.length < T.minCast) return 0;
+    if (everyone.length <= T.maxLeft && everyone.length >= T.minLeft) return 1;
+    return 0;
+  }
+
+  // The BTM2 lip sync (shared logic: BTM2 cap, double shantay / sashay)
+  function decideBtm2(state, btm2, n, shantayChance, sashayChance) {
+    const ls = btm2.map(function (q) {
+      return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
+    }).sort(function (a, b) { return b.s - a.s; });
+    let stay = ls[0].q, out = ls[1].q;
+    const capped = btm2.filter(function (q) { return q.lipSyncs + 1 >= state.btm2Cap; });
+    let target = null;
+    if (capped.length === 1) target = capped[0];
+    else if (capped.length === 2 && btm2[0].lipSyncs !== btm2[1].lipSyncs) {
+      target = btm2[0].lipSyncs > btm2[1].lipSyncs ? btm2[0] : btm2[1];
+    }
+    let forcedByCap = false;
+    if (target && target !== out) {
+      out = target;
+      stay = btm2.find(function (q) { return q !== out; });
+      forcedByCap = true;
+    }
+    const canDoubleSashay = n - 2 >= state.finaleAt;
+    let double = null;
+    const dr = state.rng();
+    if (dr < shantayChance && !forcedByCap && capped.length === 0) double = 'shantay';
+    else if (dr >= 1 - sashayChance && canDoubleSashay) double = 'sashay';
+    return { stay: stay, out: out, forcedByCap: forcedByCap, double: double, canDoubleSashay: canDoubleSashay };
+  }
+
+  // `active` = the queens performing this week, `ranked` = them best to worst.
+  function prepareTalentShow(state, part, groups, everyone, active, ranked, events) {
+    const T = C.talentShow;
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const rest = everyone.filter(function (q) { return active.indexOf(q) === -1; });
+    const pair = ranked.slice(0, 2);
+    const btm = ranked[ranked.length - 1];
+    const safe = ranked.slice(2, ranked.length - 1);
+
+    const ls = pair.map(function (q) {
+      return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
+    }).sort(function (a, b) { return b.s - a.s; });
+    const winSong = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+
+    const d = { kind: part === 1 ? 'talent1' : 'talent2', groups: groups, events: events,
+                everyone: everyone, active: active, n: everyone.length, rest: rest,
+                pair: pair, winner: ls[0].q, loser: ls[1].q, safe: safe, btm: btm, winSong: winSong,
+                prev: null, run: rest, btm2: null, double: null };
+    if (part === 2) {
+      const prev = everyone.find(function (q) { return q.id === state.talentShow.btm1; });
+      d.prev = prev;
+      d.run = rest.filter(function (q) { return q !== prev; });
+      d.btm2 = [prev, btm];
+      Object.assign(d, decideBtm2(state, d.btm2, everyone.length, T.doubleShantayChance, T.doubleSashayChance));
+      d.song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+    }
+    d.talent = { part: part, performing: ids(active), raters: ids(rest) };
+    return d;
+  }
+
+  function commitTalentShow(state, d) {
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const part = d.talent.part;
+    if (d.rigged) state.rigged = true;
+    const placement = {};
+    d.rest.forEach(function (q) { placement[q.id] = 'RUN'; });
+    d.safe.forEach(function (q) { placement[q.id] = 'SAFE-C'; });     // safe, but critiqued
+    placement[d.winner.id] = 'WIN';
+    placement[d.loser.id] = 'TOP2';
+    if (part === 1) placement[d.btm.id] = 'BTM1';
+    else { placement[d.btm.id] = 'BTM2'; placement[d.prev.id] = 'BTM2'; }
+    const events = d.events.concat(resultEvents(d));
+
+    d.everyone.forEach(function (q) { q.placements.push(placement[q.id]); });
+    d.winner.wins++;
+    state.lastWinner = d.winner.id;
+
+    if (part === 1) {
+      state.talentShow = { groups: d.groups, btm1: d.btm.id, done: false };
+    } else {
+      state.talentShow.done = true;
+      d.btm2.forEach(function (q) { q.lipSyncs++; });
+      const goingHome = d.double === 'shantay' ? [] : d.double === 'sashay' ? [d.out, d.stay] : [d.out];
+      goingHome.forEach(function (q) {
+        q.status = 'eliminated';
+        q.eliminatedEp = state.episode;
+        state.eliminated.push({ id: q.id, episode: state.episode });
+      });
+    }
+
+    const log = { episode: state.episode, queensLeft: d.n, double: part === 2 ? (d.double || null) : null,
+                  talentShow: d.talent, appearing: ids(d.active), events: events };
+    state.episodes.push(log);
+    state.episode++;
+    if (activeQueens(state).length <= state.finaleAt) state.done = true;
+    return log;
+  }
+
+
   /* ---------- One episode ----------
      Two stages, so the Riggory update can step in between them:
        prepareEpisode(state)        simulates the episode and returns a DRAFT
@@ -228,6 +334,8 @@ const GRX = (function () {
   function prepareEpisode(state) {
     const everyone = activeQueens(state);
     const isPremiere = state.episode <= state.premiere.episodes;
+    const ts = talentShowPhase(state, everyone, isPremiere);   // 0 / 1 / 2
+    let talentGroups = null;
 
     // Who is in this episode. Only a split premiere has part of the cast.
     let active = everyone;
@@ -237,9 +345,16 @@ const GRX = (function () {
       active = everyone.filter(function (q) { return group.indexOf(q.id) !== -1; });
     }
 
+    // Talent show: half the cast performs each week
+    if (ts) {
+      talentGroups = ts === 1 ? makeSplitGroups(state, everyone) : state.talentShow.groups;
+      const grp = talentGroups[ts - 1];
+      active = everyone.filter(function (q) { return grp.indexOf(q.id) !== -1; });
+    }
+
     const n = active.length;
-    const shape = isPremiere ? null : getEpisodeShape(n);
-    if (state.done || (!isPremiere && !shape)) { state.done = true; return null; }
+    const shape = (isPremiere || ts) ? null : getEpisodeShape(n);
+    if (state.done || (!isPremiere && !ts && !shape)) { state.done = true; return null; }
 
     const events = [];
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
@@ -251,7 +366,7 @@ const GRX = (function () {
     }
 
     // Challenge + runway
-    const challenge = pickChallenge(state);
+    const challenge = ts ? C.challenges.find(function (c) { return c.special === 'talentShow'; }) : pickChallenge(state);
     state.challengeHistory.push(challenge.id);
     const chal = {}, runway = {}, total = {};
     active.forEach(function (q) {
@@ -266,7 +381,7 @@ const GRX = (function () {
       bands[band.id].push(q.id);
     });
     events.push({ type: 'challenge', id: challenge.id, name: challenge.name,
-                  scores: scoreMap(chal), bands: bands });
+                  scores: scoreMap(chal), bands: bands, part: ts || null });
     const theme = pickFresh(state, typeof RUNWAY_THEMES !== 'undefined' ? RUNWAY_THEMES : [], state.runwayHistory);
     events.push({ type: 'runway', theme: theme ? { id: theme.id, name: theme.name } : null, scores: scoreMap(runway) });
 
@@ -275,6 +390,7 @@ const GRX = (function () {
 
     // Premieres: a draft too (top 2 lip sync for the win)
     if (isPremiere) return preparePremiere(state, everyone, active, ranked, events);
+    if (ts) return prepareTalentShow(state, ts, talentGroups, everyone, active, ranked, events);
 
     // Regular episode: decide the placements
     const tops = ranked.slice(0, shape.top);
@@ -330,6 +446,23 @@ const GRX = (function () {
   // uses it to show a PREVIEW before the draft is committed (Riggory).
   function resultEvents(d) {
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    if (d.kind === 'talent1' || d.kind === 'talent2') {
+      const song = function (s) { return s ? { id: s.id, title: s.title, artist: s.artist } : null; };
+      const evs = [
+        { type: 'talent-results', part: d.talent.part, performing: d.talent.performing, raters: d.talent.raters,
+          top2: ids(d.pair), critiqued: ids(d.safe), btm: d.btm.id, prevBtm: d.prev ? d.prev.id : null, run: ids(d.run) },
+        { type: 'lipsync', kind: 'top2', queens: ids(d.pair), winner: d.winner.id, loser: d.loser.id,
+          stay: d.winner.id, forcedByCap: false, song: song(d.winSong) }
+      ];
+      if (d.kind === 'talent2') {
+        evs.push({ type: 'btm-lipsync', queens: ids(d.btm2), stay: d.stay.id, double: d.double || null,
+                   forcedByCap: d.double ? false : d.forcedByCap, song: song(d.song) });
+        evs.push({ type: 'elimination', double: d.double || null,
+                   queen: d.double === 'shantay' ? null : d.out.id,
+                   queens: d.double === 'shantay' ? [] : d.double === 'sashay' ? [d.out.id, d.stay.id] : [d.out.id] });
+      }
+      return evs;
+    }
     if (d.kind === 'premiere') {
       const others = d.tops.filter(function (q) { return q !== d.winner && q !== d.loser; });
       return [
@@ -359,6 +492,7 @@ const GRX = (function () {
   }
 
   function commitEpisode(state, d) {
+    if (d.kind === 'talent1' || d.kind === 'talent2') return commitTalentShow(state, d);
     if (d.kind === 'premiere') {
       const ids0 = function (list) { return list.map(function (q) { return q.id; }); };
       if (d.rigged) state.rigged = true;
@@ -426,6 +560,7 @@ const GRX = (function () {
      committed they count like any other result. Regular and premiere episodes (finales come later). */
   function rigOptions(d) {
     if (!d) return null;
+    if (d.kind === 'talent1' || d.kind === 'talent2') return null;     // Riggory for the talent show: not built yet
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     if (d.kind === 'premiere') return { top2: ids(d.tops), win: ids(d.pair) };
     return { win: ids(d.tops), low: d.low ? ids(d.bottoms) : [], out: ids(d.btm2),

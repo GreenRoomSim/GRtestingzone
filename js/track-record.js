@@ -23,6 +23,7 @@ const TrackRecord = (function () {
   const PLACEMENT_CLASS = {
     WIN: 'p-win', TOP2: 'p-top2', HIGH: 'p-high', SAFE: 'p-safe',
     LOW: 'p-low', BTM2: 'p-btm', ELIM: 'p-elim',
+    BTM1: 'p-btm', RUN: 'p-run', 'SAFE-C': 'p-safe-crit',
     WINNER: 'p-winner', 'RUNNER UP': 'p-runner', GUEST: 'p-guest'
   };
 
@@ -54,7 +55,7 @@ const TrackRecord = (function () {
   }
 
   // Best to worst, used to order the rows
-  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'LOW', 'BTM2', 'ELIM'];
+  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'RUN', 'LOW', 'BTM1', 'BTM2', 'ELIM'];
   function placementRank(p) {
     const i = PLACEMENT_ORDER.indexOf(p);
     return i === -1 ? PLACEMENT_ORDER.length : i;
@@ -147,10 +148,20 @@ const TrackRecord = (function () {
     main.appendChild(rankTh);
     main.appendChild(nameTh);
 
-    episodes.forEach(function (log) {
+    for (let i = 0; i < episodes.length; i++) {
+      const log = episodes[i], nextLog = episodes[i + 1];
       main.appendChild(make('th', null, 'Ep. ' + log.episode));
-      sub.appendChild(make('th', null, challengeName(log)));
-    });
+      // Two-part challenge (Talent Show): one wide cell over both episodes
+      if (log.talentShow && log.talentShow.part === 1 && nextLog && nextLog.talentShow && nextLog.talentShow.part === 2) {
+        const wide = make('th', null, challengeName(log));
+        wide.colSpan = 2;
+        sub.appendChild(wide);
+        main.appendChild(make('th', null, 'Ep. ' + nextLog.episode));
+        i++;
+      } else {
+        sub.appendChild(make('th', null, challengeName(log)));
+      }
+    }
     if (season.finale) {
       main.appendChild(make('th', null, 'Finale'));
       sub.appendChild(make('th', null, 'Lip Sync'));
@@ -184,7 +195,7 @@ const TrackRecord = (function () {
         if (placement === 'ELIM' && log.double === 'sashay') cls += ' p-double-elim';
         if (placement === 'BTM2' && log.double === 'shantay') cls += ' p-double-btm';
         row.appendChild(placement
-          ? make('td', cls.trim(), placement)
+          ? make('td', cls.trim(), placement === 'SAFE-C' ? 'SAFE' : placement)
           : make('td', 'p-gone'));
       });
 

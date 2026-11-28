@@ -90,7 +90,7 @@ const GRX_CONFIG = {
                      'never' = anywhere except episode 1
                      leave out = no rule */
   challenges: [
-    { id: 'talent-show', once: true, name: 'Talent Show', category: 'performance', firstEpisode: 'only',
+    { id: 'talent-show', once: true, name: 'Talent Show', category: 'performance', special: 'talentShow',
       weights: { performance: 0.7, lipSync: 0.3 } },
     { id: 'design',      name: 'Design',      category: 'design',
       weights: { design: 1 } },
@@ -111,6 +111,24 @@ const GRX_CONFIG = {
     { id: 'makeover', once: true,    name: 'Makeover',    category: 'design', stages: ['end'],
       weights: { design: 0.7, performance: 0.3 } }
   ],
+
+  /* Challenges that can open the season (episode 1, premiere or not). */
+  openers: ['design', 'girl-groups'],
+
+  /* TALENT SHOW: a special two-part challenge (never picked normally).
+     Only when the season STARTED with minCast+ queens. Part 1 begins at the
+     first episode with between minLeft and maxLeft queens left; part 2 is the
+     very next episode. Half the cast performs each week (the other half
+     rate them, placement RUN). Each week: top 2 lip sync for the win and
+     one BTM1. The two BTM queens (week 1 + week 2) lip sync in part 2.
+     Double shantay / sashay chances are for part 2 only (0.0005 = 0.05%). */
+  talentShow: {
+    minCast: 12,
+    maxLeft: 10,
+    minLeft: 8,
+    doubleShantayChance: 0.0005,
+    doubleSashayChance: 0.0001
+  },
 
   /* Season stages, as how far through the regular season it is:
      0 = first episode, 1 = last episode before the finale. They overlap on

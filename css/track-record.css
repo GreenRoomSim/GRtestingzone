@@ -29,6 +29,8 @@
   --tr-top2: #00bfff;
   --tr-high: #add8e6;
   --tr-safe: #fafafa;
+  --tr-safe-crit: #fff2cc;      /* SAFE but critiqued (Talent Show) */
+  --tr-run:  #d2ffb5;           /* RUN: not performing this week (Talent Show) */
   --tr-low:  #ffb6c1;
   --tr-btm:  #ff6347;
   --tr-elim: #ff0000;
@@ -135,6 +137,9 @@
 .p-top2 { background: var(--tr-top2); font-weight: 900; }
 .p-high { background: var(--tr-high); }
 .p-safe { background: var(--tr-safe); }
+.p-safe-crit { background: var(--tr-safe-crit); }
+.p-run  { background: var(--tr-run); }          /* black text, set by .track */
+/* BTM1 (Talent Show week 1) reuses .p-btm */
 .p-low  { background: var(--tr-low); }
 .p-btm  { background: var(--tr-btm); }
 .p-elim { background: var(--tr-elim); font-weight: 900; }
